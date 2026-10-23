@@ -44,3 +44,7 @@ Le guide d'installation (bouton « ? ») s'ouvre tout seul à la première visit
 - Sauvegarde : menu ⋯ de l'appli > « Télécharger l'annuaire (CSV) ».
 - La bibliothèque Supabase (version 2.45.4, licence MIT) est copiée dans `vendor/` : l'appli ne dépend que de GitHub et de Supabase.
   Les polices viennent de Google Fonts ; si ce service est indisponible, le téléphone utilise sa police habituelle.
+
+## Documents
+
+- `docs/Annubus_presentation.docx` : note de présentation pour la direction, guide d'arrivée des nouveaux membres et guide du gestionnaire.
