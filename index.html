@@ -293,6 +293,11 @@ main { padding-block: 16px 110px; }
 .fab { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 8; height: 56px; padding: 0 22px; border: 3px solid var(--bg); background: var(--accent); color: var(--accent-ink); font-family: var(--font-display); font-size: 19px; letter-spacing: .06em; text-transform: uppercase; box-shadow: 4px 4px 0 var(--blue); display: inline-flex; align-items: center; gap: 8px; }
 .fab svg { width: 20px; height: 20px; }
 .toast { bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 420px) { .brand-text h1 { font-size: 28px; } .brand { gap: 10px; } .logo, .logo img { height: 46px; width: 46px; } }
+.brand-text h1 { white-space: nowrap; overflow: hidden; }
+.installbtn svg { width: 18px; height: 18px; }
+.installbtn.big { justify-content: center; padding: 12px; font-size: 16px; box-shadow: 4px 4px 0 var(--blue); }
+.tuto .installbtn { justify-self: start; padding: 12px 18px; font-size: 16px; box-shadow: 4px 4px 0 var(--blue); }
 .fab:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--blue); }
 .sheet { background: rgba(3, 8, 20, .65); }
 .panel { border: 2px solid var(--line); border-bottom: 0; }
@@ -331,6 +336,7 @@ main { padding-block: 16px 110px; }
     <button class="helpbtn" type="button" data-help="1" aria-label="Aide : comment obtenir l'accès et installer l'application" title="Aide">?</button>
     <img src="logo.jpg" alt="Annubus, annuaire professionnel">
     <p id="authIntro">Réservé à l'équipe. Entrez votre adresse e-mail : vous recevrez un e-mail de connexion.<br>Première fois ? Touchez <b>?</b> en haut à droite.</p>
+    <button class="btn primary installbtn big" type="button" data-install="1" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg> Installer l'application sur ce téléphone</button>
     <form id="authForm">
       <input id="authEmail" type="email" required autocomplete="email" inputmode="email" placeholder="votre.adresse@exemple.fr" aria-label="Adresse e-mail">
       <button class="btn primary" type="submit" id="authSend">Recevoir le lien</button>
@@ -356,6 +362,7 @@ main { padding-block: 16px 110px; }
       <div class="top-actions">
         <button class="btn" id="btnHist" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg><span class="label">Historique</span></button>
         <button class="btn" id="btnAccess" hidden title="Gérer les accès"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg><span class="label">Accès</span></button>
+        <button class="btn primary installbtn" type="button" data-install="1" hidden title="Installer Annubus sur ce téléphone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span class="label">Installer</span></button>
         <button class="helpbtn" type="button" data-help="1" aria-label="Aide" title="Aide : installer l'application">?</button>
         <button class="btn" id="btnMenu" hidden aria-label="Réglages"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
       </div>
@@ -1041,6 +1048,23 @@ main { padding-block: 16px 110px; }
     }
   });
 
+  // ---------- bouton « Installer » (Android / Chrome, ordinateur) ----------
+  let installEvt = null;
+  function showInstall() {
+    const can = !!installEvt && !isStandaloneNow();
+    document.querySelectorAll("[data-install]").forEach((b) => { b.hidden = !can; });
+  }
+  function isStandaloneNow() { return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; }
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; showInstall(); if (!$("#tuto").hidden) renderTuto(); });
+  window.addEventListener("appinstalled", () => { installEvt = null; showInstall(); toast("Annubus est installé : ouvrez-le depuis son icône."); });
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-install]"); if (!b || !installEvt) return;
+    const ev = installEvt;
+    ev.prompt();
+    try { const r = await ev.userChoice; if (r && r.outcome === "accepted") { installEvt = null; showInstall(); if (!$("#tuto").hidden) closeTuto(); } } catch (err) {}
+  });
+  if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+
   // ---------- tutoriel ----------
   const CONTACT_ACCES = CFG.contactAcces || "un administrateur d'Annubus (par exemple votre chef de service)";
   const APP_URL = location.origin + location.pathname;
@@ -1062,7 +1086,9 @@ main { padding-block: 16px 110px; }
       (isStandalone ? '<p class="tip">C\'est déjà fait : vous utilisez l\'application installée.</p>' : "") +
       (tutoOS === "ios"
         ? "<ol><li>Ouvrez ce lien dans <b>Safari</b> (pas dans Gmail ni Chrome) :<br><b>" + esc(APP_URL) + "</b></li><li>Touchez le bouton <b>Partager</b> (le carré avec une flèche vers le haut), en bas de l'écran.</li><li>Faites défiler et touchez <b>« Sur l'écran d'accueil »</b>, puis <b>Ajouter</b>.</li><li>Fermez Safari et ouvrez <b>Annubus</b> depuis la nouvelle icône.</li></ol>"
-        : "<ol><li>Ouvrez ce lien dans <b>Chrome</b> :<br><b>" + esc(APP_URL) + "</b></li><li>Touchez le menu <span class=\"kbd\">⋮</span> en haut à droite.</li><li>Touchez <b>« Ajouter à l'écran d'accueil »</b> (ou « Installer l'application »), puis confirmez.</li><li>Ouvrez <b>Annubus</b> depuis la nouvelle icône.</li></ol>") }),
+        : installEvt
+          ? '<p>Touchez ce bouton, puis confirmez <b>Installer</b> :</p><button class="btn primary installbtn" type="button" data-install="1"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3v12M7 10l5 5 5-5M5 21h14\"/></svg> Installer Annubus</button><p>L\'icône Annubus apparaît ensuite sur l\'écran d\'accueil.</p>'
+          : "<ol><li>Ouvrez ce lien dans <b>Chrome</b> :<br><b>" + esc(APP_URL) + "</b></li><li>Touchez le menu <span class=\"kbd\">⋮</span> en haut à droite.</li><li>Touchez <b>« Ajouter à l'écran d'accueil »</b> (ou « Installer l'application »), puis confirmez.</li><li>Ouvrez <b>Annubus</b> depuis la nouvelle icône.</li></ol>") }),
     () => ({ title: "3. Vous connecter", html:
       "<ol><li>Dans l'application, tapez votre adresse e-mail et touchez <b>Recevoir le lien</b>.</li><li>Ouvrez le mail reçu (regardez aussi dans les spams).</li>" +
       (tutoOS === "ios"
