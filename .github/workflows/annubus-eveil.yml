@@ -25,10 +25,12 @@ jobs:
             echo "config.js n'est pas encore rempli : rien à faire."
             exit 0
           fi
-          CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+          CODE=$(curl -s -o reponse.txt -w "%{http_code}" --max-time 30 \
             "$URL/rest/v1/contacts?select=id&limit=1" \
-            -H "apikey: $KEY" -H "Authorization: Bearer $KEY")
+            -H "apikey: $KEY")
           echo "Réponse de la base : $CODE"
+          # sans connexion, la base doit répondre [] : les fiches restent invisibles
+          echo "Contenu visible sans connexion (doit être []) : $(head -c 200 reponse.txt)"
           if [ "$CODE" != "200" ]; then
             echo "::error::La base de l'annuaire ne répond pas ($CODE). Ouvrir supabase.com et cliquer sur « Resume project » si elle est en pause."
             exit 1
