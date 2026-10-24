@@ -302,8 +302,10 @@ main { padding-block: 16px 110px; }
 .share-prev { white-space: pre-line; background: var(--bg); border: 2px dashed var(--line); border-radius: 6px; padding: 12px 14px; font-size: 15px; overflow-wrap: anywhere; }
 .share-acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .share-acts .btn { padding: 11px 18px; font-size: 16px; text-decoration: none; }
-#btnRenameCat { padding: 5px 10px; font-size: 13.5px; }
+#btnRenameCat { padding: 4px 9px; font-size: 13px; margin-left: auto; }
+@media (max-width: 420px) { #btnRenameCat .label { display: none; } }
 #btnRenameCat svg { width: 14px; height: 14px; }
+.hint-box.scope { grid-column: 1 / -1; margin-bottom: 4px; }
 .installbtn svg { width: 18px; height: 18px; }
 .installbtn.big { justify-content: center; padding: 12px; font-size: 16px; box-shadow: 4px 4px 0 var(--blue); }
 .tuto .installbtn { justify-self: start; padding: 12px 18px; font-size: 16px; box-shadow: 4px 4px 0 var(--blue); }
@@ -387,7 +389,7 @@ main { padding-block: 16px 110px; }
 
 <main class="wrap">
   <div id="notice"></div>
-  <div class="status"><span id="count">Chargement de l'annuaire…</span><button class="btn" type="button" id="btnRenameCat" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Renommer la catégorie</button><span id="sync"></span></div>
+  <div class="status"><span id="count">Chargement de l'annuaire…</span><button class="btn" type="button" id="btnRenameCat" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Renommer<span class="label"> la catégorie</span></button><span id="sync"></span></div>
   <div class="list" id="list"></div>
 </main>
 <button class="fab" id="btnAdd" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Contact</button>
@@ -418,7 +420,7 @@ main { padding-block: 16px 110px; }
     ["nom", "Nom"], ["categorie", "Catégorie"], ["telephones", "Téléphones"], ["email", "E-mails"],
     ["adresse", "Adresse"], ["cp", "Code postal"], ["ville", "Ville"], ["notes", "Infos utiles"]
   ];
-  const KEEP_MS = 7 * 24 * 3600 * 1000;
+  const KEEP_DAYS = 30, KEEP_MS = KEEP_DAYS * 24 * 3600 * 1000;
   const tabId = "tab-" + Math.random().toString(36).slice(2, 10);
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -428,6 +430,7 @@ main { padding-block: 16px 110px; }
   const fmtDay = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
   const fmtTime = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
   const fmtMonth = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
+  const fmtDayNum = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 
   const CFG = window.ANNUAIRE_CONFIG || {};
   let sb = null, uid = null, canWrite = false, isAdmin = false, membres = [];
@@ -441,6 +444,7 @@ main { padding-block: 16px 110px; }
 
   // ---------- utilitaires ----------
   function toast(msg) {
+    document.querySelectorAll(".toast").forEach((x) => x.remove());
     const t = document.createElement("div"); t.className = "toast"; t.textContent = msg;
     document.body.appendChild(t); setTimeout(() => t.remove(), 3200);
   }
@@ -640,7 +644,7 @@ main { padding-block: 16px 110px; }
       return;
     }
     if (!shown.length) {
-      $("#list").innerHTML = '<div class="empty">' + (cat === FAV && !q.trim() ? "Aucun favori pour l'instant : touchez l'étoile d'une fiche." : "Aucun contact ne correspond à « " + esc(q) + " ».") + "</div>";
+      $("#list").innerHTML = '<div class="empty">' + (cat === FAV && !q.trim() ? "Aucun favori pour l'instant : touchez l'étoile d'une fiche." : "Aucun contact ne correspond à « " + esc(q) + " »" + (cat !== HOME && cat !== ALL ? ' dans <b>' + esc(cat === FAV ? "mes favoris" : cat) + '</b>.<br><button type="button" class="btn" data-cat="' + ALL + '">Chercher dans tout l\'annuaire</button>' : ".")) + "</div>";
       return;
     }
     const auto = shown.length <= 2;
@@ -650,8 +654,9 @@ main { padding-block: 16px 110px; }
       const inCat = (c) => { const n = norm(c.categorie); return hl.every((t) => n.includes(t)); };
       const g1 = shown.filter(inName), g2 = shown.filter((c) => !inName(c) && inCat(c)), g3 = shown.filter((c) => !inName(c) && !inCat(c));
       const qq = "« " + esc(q.trim()) + " »";
+      const scope = cat !== HOME && cat !== ALL ? '<div class="hint-box scope">Recherche limitée à <b>' + esc(cat === FAV ? "mes favoris" : cat) + '</b>. <button type="button" class="linkbtn" data-cat="' + ALL + '">Chercher dans tout l\'annuaire</button></div>' : "";
       const grp = (title, list) => list.length ? '<div class="letter grp">' + title + "<small>" + list.length + "</small></div>" + list.map((c) => cardHtml(c, hl, auto)).join("") : "";
-      $("#list").innerHTML = grp("Nom contenant " + qq, g1) + grp("Catégorie contenant " + qq, g2) + grp((g1.length || g2.length ? "Autres fiches mentionnant " : "Fiches mentionnant ") + qq, g3);
+      $("#list").innerHTML = scope + grp("Nom contenant " + qq, g1) + grp("Catégorie contenant " + qq, g2) + grp((g1.length || g2.length ? "Autres fiches mentionnant " : "Fiches mentionnant ") + qq, g3);
       return;
     }
     let lastL = "";
@@ -667,7 +672,7 @@ main { padding-block: 16px 110px; }
   async function loadFavs() {
     try { favs = new Set(JSON.parse(localStorage.getItem(favKey()) || "[]")); } catch (e) {}
     const { data, error } = await sb.from("favoris").select("contact_id");
-    if (error) { favLocal = true; render(); return; }
+    if (error) { favLocal = /favoris|42P01|does not exist/i.test(error.message || "") || !navigator.onLine; render(); return; }
     favLocal = false;
     const local = [...favs];
     favs = new Set(data.map((r) => r.contact_id));
@@ -685,7 +690,7 @@ main { padding-block: 16px 110px; }
     const { error } = on
       ? await sb.from("favoris").upsert({ email: uid, contact_id: id }, { onConflict: "email,contact_id", ignoreDuplicates: true })
       : await sb.from("favoris").delete().eq("email", uid).eq("contact_id", id);
-    if (error) favLocal = true; // table absente : on garde sur ce téléphone
+    if (error) { if (/favoris|42P01|does not exist/i.test(error.message || "")) favLocal = true; else toast("Favori gardé sur ce téléphone seulement (pas de connexion)."); }
   }
 
   // ---------- derniers appelés (gardés sur ce téléphone) ----------
@@ -698,7 +703,7 @@ main { padding-block: 16px 110px; }
     const id = card ? card.dataset.id : (a.dataset.cid || "");
     let label = a.dataset.label || "";
     const li = a.closest("li"); if (li && li.querySelector(".pl")) label = li.querySelector(".pl").textContent.trim();
-    const shown = a.classList.contains("tel") ? a.textContent.trim() : (recents.find((r) => r.num === num) || {}).shown || num.replace(/(\d{2})(?=\d)/g, "$1 ");
+    const shown = a.classList.contains("tel") ? a.textContent.trim() : (recents.find((r) => r.num === num) || {}).shown || (num.length === 10 ? num.replace(/(\d{2})(?=\d)/g, "$1 ") : num);
     recents = [{ id, num, label, shown, at: Date.now() }].concat(recents.filter((r) => r.num !== num)).slice(0, 12);
     try { localStorage.setItem(recKey(), JSON.stringify(recents)); } catch (e) {}
     if (cat === HOME && !q.trim()) setTimeout(render, 400);
@@ -911,7 +916,7 @@ main { padding-block: 16px 110px; }
   async function confirmDelete() {
     if (!editor || !editor.id) return;
     const c = byId.get(editor.id);
-    $("#sheetFoot").innerHTML = '<span style="align-self:center">Supprimer « ' + esc(c ? c.nom : "") + ' » ? Restaurable 7 jours.</span><div style="display:flex;gap:8px"><button class="btn" id="delNo">Garder</button><button class="btn danger solid" id="delYes">Supprimer</button></div>';
+    $("#sheetFoot").innerHTML = '<span style="align-self:center">Supprimer « ' + esc(c ? c.nom : "") + ' » ? Restaurable 30 jours.</span><div style="display:flex;gap:8px"><button class="btn" id="delNo">Garder</button><button class="btn danger solid" id="delYes">Supprimer</button></div>';
   }
   async function doDelete() {
     const id = editor.id; const c = byId.get(id);
@@ -919,7 +924,7 @@ main { padding-block: 16px 110px; }
       const { error } = await sb.from("contacts").delete().eq("id", id);
       if (error) throw error;
       await logHistory("suppression", id, c ? c.nom : id, c ? pick(c) : null, null);
-      closeSheet(); toast("Contact supprimé. Restaurable depuis l'historique pendant 7 jours.");
+      closeSheet(); toast("Contact supprimé. Restaurable depuis l'historique pendant 30 jours.");
     } catch (e) { toast("Suppression impossible pour le moment."); }
   }
 
@@ -936,14 +941,14 @@ main { padding-block: 16px 110px; }
   function openHistory(contactId) {
     histFilter = contactId || null;
     const c = contactId ? byId.get(contactId) : null;
-    openSheet("hist", c ? "Historique · " + c.nom : "Historique des 7 derniers jours");
-    $("#sheetFoot").innerHTML = '<span class="stamp">Chaque changement est gardé 7 jours puis effacé.</span>' + (histFilter ? '<button class="btn" id="histAll">Tout l\'historique</button>' : "");
+    openSheet("hist", c ? "Historique · " + c.nom : "Historique des 30 derniers jours");
+    $("#sheetFoot").innerHTML = '<span class="stamp">Chaque changement est gardé 30 jours puis effacé.</span>' + (histFilter ? '<button class="btn" id="histAll">Tout l\'historique</button>' : "");
     renderHistory();
   }
   function renderHistory() {
     const cutoff = Date.now() - KEEP_MS;
     const items = history.filter((h) => h.atMs >= cutoff && (!histFilter || h.contactId === histFilter));
-    if (!items.length) { $("#sheetBody").innerHTML = '<div class="empty">Aucun changement ces 7 derniers jours.</div>'; return; }
+    if (!items.length) { $("#sheetBody").innerHTML = '<div class="empty">Aucun changement ces 30 derniers jours.</div>'; return; }
     let day = "", html = "";
     const label = Object.fromEntries(FIELDS);
     const verbs = { modif: "a modifié", ajout: "a ajouté", suppression: "a supprimé", restauration: "a restauré" };
@@ -1004,7 +1009,7 @@ main { padding-block: 16px 110px; }
       '<div class="field"><label for="rcName">Nouveau nom pour « ' + esc(renameFrom) + ' » (' + n + " fiche" + (n > 1 ? "s" : "") + ")</label>" +
       '<input id="rcName" maxlength="40" list="rcList" value="' + esc(renameFrom === "Autres" ? "" : renameFrom) + '" autocomplete="off">' +
       '<datalist id="rcList">' + others.map((k) => '<option value="' + esc(k) + '">').join("") + "</datalist></div>" +
-      '<p class="hint">Pour <b>fusionner</b> avec une autre catégorie, tapez simplement son nom (la liste vous le propose). Chaque fiche modifiée est gardée 7 jours dans l\'historique : on peut annuler.</p>' +
+      '<p class="hint">Pour <b>fusionner</b> avec une autre catégorie, tapez simplement son nom (la liste vous le propose). Chaque fiche modifiée est gardée 30 jours dans l\'historique : on peut annuler.</p>' +
       '<div id="rcMsg"></div>';
     $("#sheetFoot").innerHTML = '<span></span><div style="display:flex;gap:8px"><button class="btn" id="edCancel">Annuler</button><button class="btn primary" id="rcOk">Renommer</button></div>';
     setTimeout(() => { const i = $("#rcName"); if (i) { i.focus(); i.select(); } }, 50);
@@ -1069,7 +1074,7 @@ main { padding-block: 16px 110px; }
   function openMenu() {
     openSheet("menu", "Réglages");
     $("#sheetBody").innerHTML =
-      '<div class="menu-links"><button class="btn" type="button" id="mHist">' + IC.hist + " Historique des 7 derniers jours</button>" +
+      '<div class="menu-links"><button class="btn" type="button" id="mHist">' + IC.hist + " Historique des 30 derniers jours</button>" +
       (isAdmin ? '<button class="btn" type="button" id="mAccess"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg> Gérer les accès (administrateurs)</button>' : "") +
       '<button class="btn" type="button" data-help="1">? Guide d\'installation et de connexion</button></div>' +
       '<div class="field"><label>Connecté·e</label><div>' + esc(uid || "") + (isAdmin ? " · administrateur" : "") + "</div></div>" +
@@ -1110,7 +1115,7 @@ main { padding-block: 16px 110px; }
   }
   document.addEventListener("click", async (e) => {
     const catEl = e.target.closest("[data-cat]");
-    if (catEl) { cat = catEl.dataset.cat; if (cat === HOME) { q = ""; $("#q").value = ""; $("#clearQ").hidden = true; } render(); window.scrollTo(0, 0); return; }
+    if (catEl) { cat = catEl.dataset.cat; if (cat === HOME) { q = ""; $("#q").value = ""; $("#clearQ").hidden = true; } render(); if (!q.trim()) window.scrollTo(0, 0); return; }
     const favEl = e.target.closest("[data-fav]");
     if (favEl) { toggleFav(favEl.dataset.fav); return; }
     const headEl = e.target.closest(".card-head");
@@ -1120,7 +1125,7 @@ main { padding-block: 16px 110px; }
       const txt = t.dataset.copy;
       const isTel = t.classList.contains("tel");
       const what = isTel || /^\d+$/.test(txt) ? "Numéro" : "Adresse";
-      try { await navigator.clipboard.writeText(txt); t.classList.add("ok"); if (!isTel) t.innerHTML = IC.check; toast(what + " copié : " + txt + (what === "Numéro" ? " — collez-le dans votre téléphone pour appeler." : "")); }
+      try { await navigator.clipboard.writeText(txt); t.classList.add("ok"); if (!isTel) t.innerHTML = IC.check; toast(what + " copié" + (what === "Numéro" ? " : " + txt : "") + "."); }
       catch (err) { const r = document.createRange(); r.selectNodeContents(isTel ? t : t.previousElementSibling); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast(what + " sélectionné : copiez-le avec votre téléphone."); }
       setTimeout(() => { t.classList.remove("ok"); if (!isTel) t.innerHTML = IC.copy; }, 1500);
       return;
@@ -1367,7 +1372,22 @@ main { padding-block: 16px 110px; }
   async function startApp(session) {
     if (started) return; started = true;
     uid = (session.user.email || "").toLowerCase();
-    const { data: me } = await sb.from("membres").select("email, admin").eq("email", uid).maybeSingle();
+    const { data: me, error: meErr } = await sb.from("membres").select("email, admin").eq("email", uid).maybeSingle();
+    if (meErr) {
+      // pas de réseau (ou base en pause) : on montre la dernière copie gardée sur ce téléphone, en lecture seule
+      started = false;
+      const cached = loadCache();
+      if (cached) {
+        canWrite = false; favLocal = true; contacts = cached.contacts; byId = new Map(contacts.map((c) => [c.id, c])); loaded = true;
+        loadRecents(); try { favs = new Set(JSON.parse(localStorage.getItem(favKey()) || "[]")); } catch (e) {}
+        $("#auth").hidden = true; $("#app").hidden = false; $("#btnMenu").hidden = false;
+        $("#notice").innerHTML = '<div class="notice">Pas de connexion : annuaire tel qu\'il était le ' + esc(fmtDayNum.format(new Date(cached.at))) + '. Lecture seule. <button class="linkbtn" type="button" onclick="location.reload()">Réessayer</button></div>';
+        render(); return;
+      }
+      $("#authForm").hidden = false; $("#codeForm").hidden = true;
+      showAuth("Pas de connexion à l'annuaire pour le moment. Vérifiez le réseau puis réessayez.", "err");
+      return;
+    }
     if (!me) {
       started = false;
       await sb.auth.signOut();
@@ -1410,7 +1430,12 @@ main { padding-block: 16px 110px; }
     if (error) { $("#notice").innerHTML = '<div class="notice">Impossible de charger l\'annuaire. Vérifiez la connexion puis rechargez la page.</div>'; return; }
     $("#notice").innerHTML = "";
     contacts = data.map(fromRow); byId = new Map(contacts.map((c) => [c.id, c])); loaded = true; render();
+    saveCache();
   }
+  // copie de l'annuaire gardée sur ce téléphone, pour consulter sans réseau
+  const cacheKey = () => "annubus-copie:" + uid;
+  function saveCache() { try { localStorage.setItem(cacheKey(), JSON.stringify({ at: Date.now(), contacts })); } catch (e) {} }
+  function loadCache() { try { const c = JSON.parse(localStorage.getItem(cacheKey()) || "null"); return c && Array.isArray(c.contacts) && c.contacts.length ? c : null; } catch (e) { return null; } }
   async function reloadHistory() {
     const since = new Date(Date.now() - KEEP_MS).toISOString();
     const { data } = await sb.from("historique").select("*").gte("at", since).order("at", { ascending: false }).limit(800);

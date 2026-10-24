@@ -75,7 +75,7 @@ create table if not exists public.contacts (
   updated_by_label text
 );
 
--- 3. Historique (gardé 7 jours) ---------------------------------------------
+-- 3. Historique (gardé 30 jours) ---------------------------------------------
 create table if not exists public.historique (
   id         bigint generated always as identity primary key,
   action     text not null check (action in ('ajout', 'modif', 'suppression', 'restauration')),
@@ -136,13 +136,13 @@ do $$ begin
   alter publication supabase_realtime add table public.historique;
 exception when duplicate_object then null; end $$;
 
--- 7. Effacement automatique de l'historique de plus de 7 jours (chaque nuit à 3 h)
+-- 7. Effacement automatique de l'historique de plus de 30 jours (chaque nuit à 3 h)
 create extension if not exists pg_cron;
 select cron.unschedule('annuaire-purge-historique')
   where exists (select 1 from cron.job where jobname = 'annuaire-purge-historique');
 select cron.schedule(
   'annuaire-purge-historique', '0 3 * * *',
-  $$ delete from public.historique where at < now() - interval '7 days';
+  $$ delete from public.historique where at < now() - interval '30 days';
      delete from public.verrous where jusqua < now(); $$
 );
 

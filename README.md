@@ -3,7 +3,7 @@
 Adresse : https://bus3132.github.io/Annubus/
 
 Annubus, l'annuaire professionnel des partenaires de l'équipe : recherche, appel en un clic,
-modification à plusieurs (avec détection des modifications simultanées), historique de 7 jours.
+modification à plusieurs (avec détection des modifications simultanées), historique de 30 jours.
 
 Dépôt : https://github.com/Bus3132/Annubus — la page est publiée par GitHub Pages (Settings > Pages : branche `main`, dossier `/ (root)`).
 
