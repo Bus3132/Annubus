@@ -172,6 +172,11 @@ mark { background: var(--signal); color: var(--signal-ink); border-radius: 2px; 
 .two { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
 .conflict { border: 2px solid var(--signal); border-radius: 12px; padding: 12px; display: grid; gap: 10px; }
 .conflict h4 { margin: 0; font-size: 15px; }
+.dup { border: 2px solid var(--signal); border-radius: 6px; padding: 12px; display: grid; gap: 10px; background: var(--warn-bg); color: var(--warn-ink); }
+.dup h4 { margin: 0; font-size: 15px; }
+.dup-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--ink); }
+.dup-why { font-size: 13.5px; color: var(--warn-ink); }
+.dup .hint { color: var(--warn-ink); }
 .choice { display: grid; gap: 6px; }
 .choice label { display: grid; grid-template-columns: 20px 1fr; gap: 8px; align-items: start; border: 1px solid var(--line); border-radius: 8px; padding: 8px; font-size: 14px; white-space: pre-line; overflow-wrap: anywhere; }
 .choice label b { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
@@ -759,6 +764,40 @@ main { padding-block: 16px 110px; }
   }
   function pick(o) { const r = {}; FIELDS.forEach(([k]) => r[k] = val(o, k)); return r; }
 
+  // ---------- doublons : même numéro ou nom quasi identique dans une autre fiche ----------
+  const numsOf = (c) => { const out = new Set(); parseTels(c.telephones).forEach((t) => { const d = digits(t.num); if (d.length >= 4) out.add(d.length === 10 ? d : d); }); return out; };
+  const simpleName = (n) => norm(n).replace(/[^a-z0-9]+/g, " ").replace(/\b(le|la|les|de|du|des|dr|d|l)\b/g, " ").replace(/\s+/g, " ").trim();
+  function findDuplicates(nom, telsText, exceptId) {
+    const nums = numsOf({ telephones: telsText });
+    const sn = simpleName(nom);
+    const hits = [];
+    contacts.forEach((c) => {
+      if (c.id === exceptId) return;
+      const shared = [...numsOf(c)].filter((d) => nums.has(d));
+      const cn = simpleName(c.nom);
+      const ts = sn.split(" ").filter((w) => w.length >= 3), tc = cn.split(" ").filter((w) => w.length >= 3);
+      const [small, big] = ts.length <= tc.length ? [ts, tc] : [tc, ts];
+      const sameName = sn.length >= 4 && cn.length >= 4 && (sn === cn || (small.length >= 1 && small.join(" ").length >= 5 && small.every((w) => big.includes(w))));
+      if (shared.length || sameName) hits.push({ c, shared, sameName });
+    });
+    return hits;
+  }
+  function dupHtml(hits) {
+    if (!hits.length) return "";
+    return '<div class="dup"><h4>Cette fiche existe peut-être déjà</h4>' + hits.slice(0, 4).map((h) =>
+      '<div class="dup-item"><div><b>' + esc(h.c.nom) + '</b><span class="stamp"> · ' + esc(h.c.categorie || "Autres") + "</span><br><span class=\"dup-why\">" +
+      (h.shared.length ? "même numéro : " + h.shared.map((d) => d.length === 10 ? d.replace(/(\d{2})(?=\d)/g, "$1 ") : d).join(", ") : "nom très proche") +
+      '</span></div><button type="button" class="btn" data-dup-open="' + esc(h.c.id) + '">Voir / modifier cette fiche</button></div>').join("") +
+      '<p class="hint">Si c\'est la même structure, complétez plutôt la fiche existante (vous pouvez y ajouter un numéro ou un nom de personne). Sinon, enregistrez quand même.</p></div>';
+  }
+  let dupTimer = null;
+  function checkDup() {
+    if (!editor || !$("#edDup")) return;
+    const nom = $("#f-nom").value, tels = serializeTels();
+    editor.dups = findDuplicates(nom, tels, editor.id);
+    $("#edDup").innerHTML = dupHtml(editor.dups);
+  }
+
   async function openEditor(id) {
     const c = id ? byId.get(id) : null;
     const base = c ? pick(c) : pick({ categorie: [HOME, ALL, FAV].includes(cat) ? "" : cat });
@@ -778,6 +817,7 @@ main { padding-block: 16px 110px; }
       '<button type="button" class="btn addtel" id="telAdd">+ Ajouter un numéro</button>' +
       '<p class="hint">Remplissez la nouvelle ligne, puis cliquez sur « Enregistrer » en bas.</p>' +
       '<input type="hidden" id="f-telephones"></div>' +
+      '<div id="edDup"></div>' +
       field("email", "E-mails", base.email, "textarea") +
       field("adresse", "Adresse", base.adresse, "input") +
       '<div class="two">' + field("cp", "Code postal", base.cp, "input") + field("ville", "Ville", base.ville, "input") + "</div>" +
@@ -788,6 +828,8 @@ main { padding-block: 16px 110px; }
     parseTels(base.telephones).forEach((t) => addTelRow(t.label, t.num));
     if (!base.telephones) addTelRow("", "");
     $("#f-nom").focus();
+    editor.dups = []; editor.dupOk = false;
+    $("#sheetBody").addEventListener("input", (e) => { if (e.target.id === "f-nom" || e.target.classList.contains("tn")) { clearTimeout(dupTimer); dupTimer = setTimeout(checkDup, 350); } });
     if (id) {
       const lease = async () => {
         try {
@@ -848,6 +890,14 @@ main { padding-block: 16px 110px; }
     try {
       const mine = formValues();
       if (!mine.nom) { toast("Indiquez au moins un nom."); btn.disabled = false; return; }
+      if (!resolved && !editor.dupOk) {
+        editor.dups = findDuplicates(mine.nom, mine.telephones, editor.id);
+        const blocking = editor.dups.filter((h) => h.shared.length || !editor.id);
+        if (blocking.length) {
+          $("#edDup").innerHTML = dupHtml(blocking) + '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn primary" id="edDupSave">Enregistrer quand même (ce n\'est pas un doublon)</button></div>';
+          $("#edDup").scrollIntoView({ behavior: "smooth", block: "start" }); btn.disabled = false; return;
+        }
+      }
       if (!editor.id) {
         const id = norm(mine.nom).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) + "-" + Math.random().toString(36).slice(2, 6);
         const { error } = await sb.from("contacts").insert({ id, ...toRow(mine), rev: 1, ...stampRow() });
@@ -1042,6 +1092,20 @@ main { padding-block: 16px 110px; }
   }
   $("#btnRenameCat").addEventListener("click", openRenameCat);
 
+  // ---------- rapport : fiches qui partagent un numéro ----------
+  function openDupReport() {
+    const byNum = new Map();
+    contacts.forEach((c) => numsOf(c).forEach((d) => { if (!byNum.has(d)) byNum.set(d, []); byNum.get(d).push(c); }));
+    const groups = [...byNum.entries()].filter(([, l]) => l.length > 1).sort((a, b) => b[1].length - a[1].length);
+    openSheet("dups", "Doublons possibles");
+    $("#sheetBody").innerHTML = groups.length
+      ? '<p class="hint">Un même numéro peut être partagé pour de bonnes raisons (standard d\'un hôpital, plusieurs services). Ouvrez les fiches pour décider : fusionner, ou laisser.</p>' +
+        groups.map(([d, l]) => '<div class="h-item"><div class="who"><b class="tel" style="cursor:default">' + (d.length === 10 ? d.replace(/(\d{2})(?=\d)/g, "$1 ") : d) + "</b> · " + l.length + " fiches</div>" +
+          l.map((c) => '<div class="dup-item"><span>' + esc(c.nom) + '<span class="stamp"> · ' + esc(c.categorie || "Autres") + "</span></span>" + (canWrite ? '<button type="button" class="btn" data-dup-open="' + esc(c.id) + '">Ouvrir</button>' : "") + "</div>").join("") + "</div>").join("")
+      : '<div class="empty">Aucun numéro n\'apparaît dans deux fiches différentes.</div>';
+    $("#sheetFoot").innerHTML = '<span class="stamp">' + groups.length + " numéro" + (groups.length > 1 ? "s" : "") + " en double</span><button class=\"btn\" id=\"edCancel\">Fermer</button>";
+  }
+
   // ---------- partager une fiche (WhatsApp, SMS…) — les « infos utiles » ne sont jamais envoyées ----------
   let shareCur = null;
   function shareText(c) {
@@ -1075,6 +1139,7 @@ main { padding-block: 16px 110px; }
     openSheet("menu", "Réglages");
     $("#sheetBody").innerHTML =
       '<div class="menu-links"><button class="btn" type="button" id="mHist">' + IC.hist + " Historique des 30 derniers jours</button>" +
+      '<button class="btn" type="button" id="mDups">' + IC.copy + " Doublons possibles (même numéro)</button>" +
       (isAdmin ? '<button class="btn" type="button" id="mAccess"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg> Gérer les accès (administrateurs)</button>' : "") +
       '<button class="btn" type="button" data-help="1">? Guide d\'installation et de connexion</button></div>' +
       '<div class="field"><label>Connecté·e</label><div>' + esc(uid || "") + (isAdmin ? " · administrateur" : "") + "</div></div>" +
@@ -1134,6 +1199,9 @@ main { padding-block: 16px 110px; }
     if (t.id === "catNewBtn") { $("#catNewRow").hidden = false; t.setAttribute("aria-expanded", "true"); $("#catNew").focus(); return; }
     if (t.id === "catNewOk") { createCat(); return; }
     if (t.id === "telAdd") { addTelRow("", "", true); return; }
+    if (t.id === "edDupSave") { editor.dupOk = true; saveEditor(null); return; }
+    if (t.dataset.dupOpen) { const target = t.dataset.dupOpen; closeSheet(); openCards.add(target); cat = ALL; q = ""; $("#q").value = ""; $("#clearQ").hidden = true; render(); openEditor(target); return; }
+    if (t.id === "mDups") { openDupReport(); return; }
     if (t.dataset.teldel) {
       const row = t.closest(".telrow"); const next = row.nextElementSibling || row.previousElementSibling;
       row.remove();
