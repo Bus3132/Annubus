@@ -145,3 +145,17 @@ select cron.schedule(
   $$ delete from public.historique where at < now() - interval '7 days';
      delete from public.verrous where jusqua < now(); $$
 );
+
+-- 8. Favoris : chaque personne a les siens (personne ne voit ceux des autres)
+create table if not exists public.favoris (
+  email      text not null,
+  contact_id text not null,
+  ajoute_le  timestamptz not null default now(),
+  primary key (email, contact_id)
+);
+alter table public.favoris enable row level security;
+drop policy if exists "chacun ses favoris" on public.favoris;
+create policy "chacun ses favoris" on public.favoris
+  for all to authenticated
+  using (public.est_membre() and email = lower(coalesce(auth.jwt() ->> 'email', '')))
+  with check (public.est_membre() and email = lower(coalesce(auth.jwt() ->> 'email', '')));

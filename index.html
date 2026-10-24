@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#1f4d9e">
+<meta name="theme-color" content="#0e1733">
 <title>Annubus</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="favicon.png">
@@ -12,47 +12,34 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Annubus">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Atkinson+Hyperlegible+Mono:wght@400;600&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Atkinson+Hyperlegible+Mono:wght@400;600&family=Anton&display=swap">
 <style>
 /* Layout: sticky header (logo + recherche), rangée de catégories, liste de fiches ; feuilles plein écran pour édition et historique. */
 :root {
-  /* couleurs du logo : bleu, orange, gris */
-  --bg: #f1f3f7;
-  --surface: #ffffff;
-  --ink: #15203a;
-  --muted: #5d677a;
-  --line: #dadfe8;
-  --accent: #1f4d9e;
-  --accent-ink: #ffffff;
-  --accent-soft: #e6edf9;
-  --signal: #f3a21b;
-  --signal-ink: #3b2400;
-  --grey: #a7adb7;
-  --warn-bg: #fff2d9;
-  --warn-ink: #6e4600;
-  --danger: #b3261e;
-  --chip: #eceff4;
-  --shadow: 0 1px 2px rgba(21, 32, 58, .06), 0 4px 14px rgba(21, 32, 58, .05);
-  --c1: #1f4d9e; --c2: #c96a00; --c3: #6b4fb8; --c4: #0f7a6c; --c5: #b3305b; --c6: #5d677a; --c7: #2f7d32; --c8: #9a5b14; --c9: #2a7fb0; --c10: #7a6a00;
-  --font-display: "Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
+  /* style « graffiti » : bleu nuit, jaune, bleu vif (couleurs du logo) */
+  --bg: #0e1733;
+  --surface: #17234d;
+  --ink: #f4f6fb;
+  --muted: #aab6d6;
+  --line: #2b3b72;
+  --accent: #f7b928;
+  --accent-ink: #0e1733;
+  --accent-soft: #2a3769;
+  --signal: #f7b928;
+  --signal-ink: #0e1733;
+  --blue: #2f62d6;
+  --paper: #f4f6fb;
+  --grey: #6f7a9c;
+  --warn-bg: #3a2c0d;
+  --warn-ink: #f7d68a;
+  --danger: #ff8a80;
+  --chip: #22305f;
+  --shadow: none;
+  --c1: #86aef5; --c2: #f2a65a; --c3: #b39cf0; --c4: #5fcfbd; --c5: #f08aa9; --c6: #a7b0c2; --c7: #7fcf86; --c8: #e0b070; --c9: #79c3ec; --c10: #d9c860;
+  --font-display: "Anton", Impact, "Arial Narrow", sans-serif;
   --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-data: "Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", Menlo, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0d1320; --surface: #151d2c; --ink: #e6ebf5; --muted: #98a3b8; --line: #283246;
-    --accent: #86aef5; --accent-ink: #0b1630; --accent-soft: #1b2a47; --signal: #f6b443; --signal-ink: #2b1a00; --grey: #6f7686;
-    --warn-bg: #3a2c0d; --warn-ink: #f7d68a; --danger: #ff8a80; --chip: #1e2738;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3);
-    --c1: #86aef5; --c2: #f2a65a; --c3: #b39cf0; --c4: #5fcfbd; --c5: #f08aa9; --c6: #a7b0c2; --c7: #7fcf86; --c8: #e0b070; --c9: #79c3ec; --c10: #d9c860; color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0d1320; --surface: #151d2c; --ink: #e6ebf5; --muted: #98a3b8; --line: #283246;
-  --accent: #86aef5; --accent-ink: #0b1630; --accent-soft: #1b2a47; --signal: #f6b443; --signal-ink: #2b1a00; --grey: #6f7686;
-  --warn-bg: #3a2c0d; --warn-ink: #f7d68a; --danger: #ff8a80; --chip: #1e2738;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .3);
-  --c1: #86aef5; --c2: #f2a65a; --c3: #b39cf0; --c4: #5fcfbd; --c5: #f08aa9; --c6: #a7b0c2; --c7: #7fcf86; --c8: #e0b070; --c9: #79c3ec; --c10: #d9c860; color-scheme: dark;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.45; }
@@ -123,7 +110,7 @@ main { padding-block: 14px 60px; }
 .card.open .chev { transform: rotate(180deg); color: var(--accent); }
 .card-body { display: grid; gap: 10px; padding: 12px 14px 14px; border-top: 1px solid var(--line); }
 .card-body[hidden] { display: none; }
-@media (max-width: 480px) { .quick { display: none; } .call { margin-left: 0; } }
+@media (max-width: 480px) { .tel.quick { display: none; } .call { margin-left: 0; } }
 .card-top { display: grid; gap: 4px; }
 .card h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 19px; line-height: 1.2; letter-spacing: -0.005em; text-wrap: balance; overflow-wrap: anywhere; }
 .tag { justify-self: start; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
@@ -264,6 +251,77 @@ img { max-width: 100%; }
 .auth-msg.ok { background: var(--accent-soft); color: var(--ink); }
 .auth-msg.err { background: var(--warn-bg); color: var(--warn-ink); }
 .linkbtn { border: 0; background: none; color: var(--accent); font-size: 14px; text-decoration: underline; padding: 4px; }
+
+/* ---------- style graffiti ---------- */
+body::before { background: var(--bg); }
+header.top { background: var(--bg); box-shadow: none; border-bottom: 4px solid var(--accent); }
+header.top::after { display: none; }
+.top .wrap { gap: 12px; padding-block: 14px 12px; }
+.logo { cursor: pointer; }
+.logo img { border: 2px solid var(--accent); border-radius: 14px; padding: 0; }
+.brand-text h1 { font-size: 34px; line-height: 1; font-weight: 400; letter-spacing: .02em; text-transform: uppercase; }
+.brand-text p { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+.top-actions .helpbtn { background: transparent; }
+.search input { background: var(--paper); color: var(--bg); border-radius: 4px; border: 0; box-shadow: 4px 4px 0 var(--accent); }
+.search input::placeholder { color: #5a6688; }
+.search input:focus { background: #fff; box-shadow: 4px 4px 0 var(--accent), 0 0 0 3px var(--blue); }
+.search svg.lens, .search .clear { color: #4a5678; }
+.cats { gap: 10px; padding-block: 6px 6px; padding-inline: 2px; }
+.cats .cat { border: 2px solid var(--ink); background: transparent; color: var(--ink); border-radius: 2px; font-family: var(--font-display); font-size: 16px; letter-spacing: .06em; text-transform: uppercase; padding: 7px 13px; min-height: 42px; }
+.cats .cat:nth-child(3n+1) { transform: rotate(-1.5deg); }
+.cats .cat:nth-child(3n+2) { transform: rotate(1.2deg); }
+.cats .cat[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.cats .cat.home { background: var(--blue); border-color: var(--blue); color: #fff; }
+.cats .cat .n { font-family: var(--font-body); font-weight: 700; }
+.btn { border-radius: 4px; }
+main { padding-block: 16px 110px; }
+.letter { font-size: 44px; font-weight: 400; line-height: .95; margin-top: 10px; }
+.letter::after { background: var(--line); }
+.card { border: 2px solid transparent; border-radius: 6px; }
+.card.open { border-color: var(--accent); box-shadow: 6px 6px 0 var(--blue); }
+.ct-name { font-family: var(--font-body); font-weight: 700; }
+.card.open .ct-name { font-family: var(--font-display); font-weight: 400; font-size: 22px; text-transform: uppercase; letter-spacing: .02em; }
+.tag { text-transform: uppercase; letter-spacing: .1em; font-size: 12px; }
+.call { width: 46px; height: 46px; background: var(--accent); color: var(--accent-ink); }
+.call svg { width: 21px; height: 21px; }
+.card-body { border-top: 2px dashed var(--line); }
+.fav { flex: none; width: 40px; height: 40px; border: 0; background: transparent; color: var(--grey); border-radius: 50%; display: grid; place-items: center; padding: 0; }
+.fav svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.fav[aria-pressed="true"] { color: var(--accent); }
+.fav[aria-pressed="true"] svg { fill: currentColor; }
+.fav:hover { color: var(--accent); }
+.fab { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 8; height: 56px; padding: 0 22px; border: 3px solid var(--bg); background: var(--accent); color: var(--accent-ink); font-family: var(--font-display); font-size: 19px; letter-spacing: .06em; text-transform: uppercase; box-shadow: 4px 4px 0 var(--blue); display: inline-flex; align-items: center; gap: 8px; }
+.fab svg { width: 20px; height: 20px; }
+.toast { bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
+.fab:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--blue); }
+.sheet { background: rgba(3, 8, 20, .65); }
+.panel { border: 2px solid var(--line); border-bottom: 0; }
+.panel-head h3, .tuto h4, .auth-card h2 { font-weight: 400; text-transform: uppercase; letter-spacing: .02em; }
+.auth-card { border: 2px solid var(--line); border-radius: 6px; box-shadow: 6px 6px 0 var(--blue); }
+
+/* ---------- accueil : récents, favoris, catégories ---------- */
+.home { display: grid; gap: 26px; }
+.sec-title { margin: 0 0 12px; font-family: var(--font-display); font-weight: 400; font-size: 24px; line-height: 1; text-transform: uppercase; letter-spacing: .03em; display: flex; align-items: baseline; gap: 10px; }
+.sec-title small { font-family: var(--font-body); font-size: 13px; letter-spacing: .08em; color: var(--muted); }
+.sec-title .bar { flex: 1; height: 2px; background: var(--line); align-self: center; }
+.hint-box { border: 2px dashed var(--line); border-radius: 6px; padding: 12px 14px; color: var(--muted); font-size: 14.5px; }
+.hint-box svg { width: 16px; height: 16px; vertical-align: -3px; fill: var(--accent); }
+.recents { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 8px; scrollbar-width: thin; }
+.rc { flex: none; width: 140px; background: var(--surface); color: var(--ink); border-radius: 6px; padding: 12px; display: grid; gap: 6px; align-content: start; text-decoration: none; }
+.rc:hover { outline: 2px solid var(--accent); }
+.rc .ci { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; }
+.rc .ci svg { width: 18px; height: 18px; }
+.rc .nm { font-weight: 700; font-size: 14.5px; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.rc .nb { font-family: var(--font-data); font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 12px; }
+.tile { border: 0; text-align: left; background: var(--surface); color: var(--ink); border-radius: 6px; padding: 14px; min-height: 104px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; border-left: 6px solid var(--dc, var(--line)); }
+.tile:hover { outline: 2px solid var(--accent); }
+.tile .tn { font-family: var(--font-display); font-size: 38px; line-height: 1; color: var(--accent); }
+.tile .tl { font-weight: 700; font-size: 16px; line-height: 1.2; overflow-wrap: anywhere; }
+.tile.all { background: var(--accent); color: var(--accent-ink); border-left-color: var(--accent); box-shadow: 4px 4px 0 var(--blue); transform: rotate(-1deg); }
+.tile.all .tn { color: var(--accent-ink); }
+.tile.favs { background: var(--blue); border-left-color: var(--blue); color: #fff; }
+.tile.favs .tn { color: #fff; }
 </style>
 </head>
 <body>
@@ -290,13 +348,12 @@ img { max-width: 100%; }
 <header class="top">
   <div class="wrap">
     <div class="brand">
-      <div class="logo" id="logo"><img src="icon-192.png" alt="Annubus"></div>
+      <div class="logo" id="logo" data-cat="Accueil" title="Accueil"><img src="icon-192.png" alt="Annubus"></div>
       <div class="brand-text">
         <h1>Annu<span class="b">bus</span></h1>
         <p id="sub">Annuaire professionnel</p>
       </div>
       <div class="top-actions">
-        <button class="btn primary" id="btnAdd" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span class="label">Contact</span></button>
         <button class="btn" id="btnHist" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg><span class="label">Historique</span></button>
         <button class="btn" id="btnAccess" hidden title="Gérer les accès"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg><span class="label">Accès</span></button>
         <button class="helpbtn" type="button" data-help="1" aria-label="Aide" title="Aide : installer l'application">?</button>
@@ -317,6 +374,7 @@ img { max-width: 100%; }
   <div class="status"><span id="count">Chargement de l'annuaire…</span><span id="sync"></span></div>
   <div class="list" id="list"></div>
 </main>
+<button class="fab" id="btnAdd" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Contact</button>
 
 <div class="sheet" id="sheet" hidden>
   <div class="panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
@@ -358,7 +416,9 @@ img { max-width: 100%; }
   const CFG = window.ANNUAIRE_CONFIG || {};
   let sb = null, uid = null, canWrite = false, isAdmin = false, membres = [];
   let contacts = [], byId = new Map(), history = [];
-  let q = "", cat = "Toutes", openNotes = new Set(), openCards = new Set();
+  const HOME = "Accueil", ALL = "Toutes", FAV = "Favoris";
+  let q = "", cat = HOME, openNotes = new Set(), openCards = new Set();
+  let favs = new Set(), favLocal = false, recents = [];
   let names = {};
   let editor = null; // état de la feuille d'édition
   let loaded = false;
@@ -422,7 +482,8 @@ img { max-width: 100%; }
 
   // ---------- recherche ----------
   function matches(c) {
-    if (cat !== "Toutes" && (c.categorie || "Autres") !== cat) return false;
+    if (cat === FAV) { if (!favs.has(c.id)) return false; }
+    else if (cat !== HOME && cat !== ALL && (c.categorie || "Autres") !== cat) return false;
     const raw = q.trim();
     if (!raw) return true;
     if (/^[\d\s.+\-]+$/.test(raw) && digits(raw).length >= 2) {
@@ -457,54 +518,152 @@ img { max-width: 100%; }
     const old = Date.now() - d.getTime() > 365 * 24 * 3600 * 1000;
     return '<span class="stamp' + (old ? " old" : "") + '" title="' + (old ? "Info de plus d'un an, à vérifier" : "") + '">Mis à jour ' + fmtMonth.format(d) + esc(by) + (old ? " · à vérifier" : "") + "</span>";
   }
+  const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.3l-5.6 2.9 1.1-6.3L2.9 9.5l6.3-.9z"/></svg>';
+  const PHONE_IC = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6a1 1 0 0 0-1 .25l-2.2 2.2a15 15 0 0 1-6.6-6.6l2.2-2.2a1 1 0 0 0 .25-1A11.4 11.4 0 0 1 8.5 4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1 17 17 0 0 0 17 17 1 1 0 0 0 1-1v-3.5a1 1 0 0 0-1-1z"/></svg>';
+  const initialOf = (c) => { const n = norm(c.nom).replace(/^(dr\.?|le|la|les)\s+/, "").trim(); const ch = n.charAt(0).toUpperCase(); return /[A-Z]/.test(ch) ? ch : "#"; };
+
+  function cardHtml(c, hl, autoOpen) {
+    const rows = [];
+    if (val(c, "telephones")) rows.push([IC.phone, linesHtml(c.telephones, hl)]);
+    if (val(c, "email")) rows.push([IC.mail, emailLines(c.email, hl)]);
+    const addr = [val(c, "adresse"), [val(c, "cp"), val(c, "ville")].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+    const mapQ = encodeURIComponent([val(c, "adresse"), val(c, "cp"), val(c, "ville") || "Marseille"].filter(Boolean).join(" "));
+    if (addr) rows.push([IC.pin, highlight(addr, hl) + (val(c, "adresse") ? ' <a class="maplink" href="https://www.google.com/maps/search/?api=1&amp;query=' + mapQ + '" target="_blank" rel="noopener">Itinéraire ↗</a>' : "")]);
+    const notes = val(c, "notes");
+    const isOpen = openCards.has(c.id) || autoOpen;
+    const firstTel = (String(c.telephones || "").match(PHONE) || [])[0];
+    const sub = [esc(c.categorie || "Autres"), val(c, "ville") && val(c, "ville") !== "Marseille" ? esc(val(c, "ville")) : (val(c, "cp").startsWith("130") ? esc(+val(c, "cp").slice(3) + (val(c, "cp") === "13001" ? "er" : "e")) : "")].filter(Boolean).join(" · ");
+    const isFav = favs.has(c.id);
+    return '<article class="card' + (isOpen ? " open" : "") + '" data-id="' + esc(c.id) + '">' +
+      '<div class="card-head">' +
+        '<button type="button" class="card-toggle" aria-expanded="' + isOpen + '" aria-controls="b-' + esc(c.id) + '">' +
+          '<span class="ct-name">' + highlight(c.nom, hl) + '</span>' +
+          '<span class="tag"><span class="dot" style="--dc:' + catColor(c.categorie || "Autres") + '"></span>' + sub + "</span>" +
+        "</button>" +
+        '<button type="button" class="fav" data-fav="' + esc(c.id) + '" aria-pressed="' + isFav + '" aria-label="' + (isFav ? "Retirer des favoris" : "Ajouter aux favoris") + '" title="' + (isFav ? "Retirer de mes favoris" : "Ajouter à mes favoris") + '">' + STAR + "</button>" +
+        (firstTel ? '<span class="quickwrap"><a class="tel quick" href="tel:' + digits(firstTel) + '" title="Appeler">' + esc(firstTel) + "</a>" + callLink(digits(firstTel)) + "</span>" : "") +
+        '<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>' +
+      "</div>" +
+      '<div class="card-body" id="b-' + esc(c.id) + '"' + (isOpen ? "" : " hidden") + ">" +
+      rows.map(([ic, v]) => '<div class="row"><span class="ic" aria-hidden="true">' + ic + '</span><div class="v">' + v + "</div></div>").join("") +
+      (notes ? '<div class="notes open">' + rich(notes, hl).replace(/\n/g, "<br>") + "</div>" : "") +
+      '<div class="card-foot">' + stamp(c) + '<div class="card-actions">' +
+      (canWrite ? '<button class="btn" data-edit="' + esc(c.id) + '">' + IC.edit + "Modifier</button>" : "") +
+      '<button class="btn ghost" data-hist="' + esc(c.id) + '" title="Historique de cette fiche" aria-label="Historique de cette fiche">' + IC.hist + "</button></div></div></div></article>";
+  }
+
+  function homeHtml(counts) {
+    // 1. derniers numéros appelés (sur ce téléphone)
+    const rec = recents.filter((r) => !r.id || byId.has(r.id)).slice(0, 8);
+    let h = '<section><h2 class="sec-title">Derniers appelés<span class="bar"></span></h2>' +
+      (rec.length
+        ? '<div class="recents">' + rec.map((r) => {
+            const c = r.id ? byId.get(r.id) : null;
+            const name = c ? c.nom : r.num;
+            const line = [r.label, r.shown || r.num].filter(Boolean).join(" · ");
+            return '<a class="rc" href="tel:' + esc(r.num) + '" data-cid="' + esc(r.id || "") + '" data-label="' + esc(r.label || "") + '" aria-label="Rappeler ' + esc(name) + '"><span class="ci">' + PHONE_IC + '</span><span class="nm">' + esc(name) + '</span><span class="nb">' + esc(line) + "</span></a>";
+          }).join("") + "</div>"
+        : '<div class="hint-box">Les numéros que vous appelez depuis Annubus apparaîtront ici, pour les rappeler d\'un geste.</div>') +
+      "</section>";
+    // 2. favoris (propres à chaque personne)
+    const fl = contacts.filter((c) => favs.has(c.id)).sort(sortName);
+    h += '<section><h2 class="sec-title">Mes favoris' + (fl.length ? "<small>" + fl.length + "</small>" : "") + '<span class="bar"></span></h2>' +
+      (fl.length
+        ? '<div class="list">' + fl.map((c) => cardHtml(c, [], false)).join("") + "</div>"
+        : '<div class="hint-box">Touchez l\'étoile ' + STAR + " d'une fiche pour l'ajouter à vos favoris. Chacun a les siens.</div>") +
+      "</section>";
+    // 3. catégories
+    const keys = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b, "fr"));
+    h += '<section><h2 class="sec-title">Catégories<span class="bar"></span></h2><div class="tiles">' +
+      '<button type="button" class="tile all" data-cat="' + ALL + '"><span class="tn">' + contacts.length + '</span><span class="tl">Tout l\'annuaire A–Z</span></button>' +
+      keys.map((k) => '<button type="button" class="tile" data-cat="' + esc(k) + '" style="--dc:' + catColor(k) + '"><span class="tn">' + counts[k] + '</span><span class="tl">' + esc(k) + "</span></button>").join("") +
+      "</div></section>";
+    return h;
+  }
+
   function render() {
-    // catégories
     const counts = {};
     contacts.forEach((c) => { const k = c.categorie || "Autres"; counts[k] = (counts[k] || 0) + 1; });
-    const cats = ["Toutes", ...Object.keys(counts).sort((a, b) => a.localeCompare(b, "fr"))];
-    if (cat !== "Toutes" && !counts[cat]) cat = "Toutes";
-    $("#cats").innerHTML = cats.map((k) => '<button class="cat" data-cat="' + esc(k) + '" aria-pressed="' + (k === cat) + '">' + (k === "Toutes" ? "" : '<span class="dot" style="--dc:' + catColor(k) + '"></span>') + esc(k) + '<span class="n">' + (k === "Toutes" ? contacts.length : counts[k]) + "</span></button>").join("");
+    if (![HOME, ALL, FAV].includes(cat) && !counts[cat] && loaded) cat = HOME;
+    const isHome = cat === HOME && !q.trim();
+    const favN = contacts.filter((c) => favs.has(c.id)).length;
+    const chips = [HOME, ALL].concat(favN ? [FAV] : [], Object.keys(counts).sort((a, b) => a.localeCompare(b, "fr")));
+    $("#cats").hidden = isHome;
+    $("#cats").innerHTML = chips.map((k) => {
+      const n = k === HOME ? "" : k === ALL ? contacts.length : k === FAV ? favN : counts[k];
+      const label = k === HOME ? "← Accueil" : k === ALL ? "Tout" : k === FAV ? "★ Favoris" : k;
+      return '<button class="cat' + (k === HOME ? " home" : "") + '" data-cat="' + esc(k) + '" aria-pressed="' + (k === cat && k !== HOME) + '">' + esc(label) + (n !== "" ? '<span class="n">' + n + "</span>" : "") + "</button>";
+    }).join("");
 
+    if (!loaded) { $("#count").textContent = "Chargement de l'annuaire…"; return; }
+    if (isHome) {
+      $("#count").textContent = contacts.length + " contacts";
+      $("#list").className = "home";
+      $("#list").innerHTML = homeHtml(counts);
+      return;
+    }
+    $("#list").className = "list";
     const hl = /^[\d\s.+\-]+$/.test(q.trim()) ? [] : norm(q).split(/\s+/).filter(Boolean);
     const shown = contacts.filter(matches).sort(sortName);
-    if (!loaded) { $("#count").textContent = "Chargement de l'annuaire…"; return; }
-    $("#count").textContent = shown.length + (shown.length > 1 ? " contacts" : " contact") + (q || cat !== "Toutes" ? " sur " + contacts.length : "");
+    $("#count").textContent = shown.length + (shown.length > 1 ? " contacts" : " contact") + (q || cat !== ALL ? " sur " + contacts.length : "");
     if (!contacts.length) {
       $("#list").innerHTML = '<div class="empty">L\'annuaire est vide pour l\'instant.' + (canWrite ? '<br>Ajoutez le premier contact avec le bouton « + Contact ».' : "") + "</div>";
       return;
     }
-    if (!shown.length) { $("#list").innerHTML = '<div class="empty">Aucun contact ne correspond à « ' + esc(q) + ' ».</div>'; return; }
-    const initial = (c) => { const n = norm(c.nom).replace(/^(dr\.?|le|la|les)\s+/, "").trim(); const ch = n.charAt(0).toUpperCase(); return /[A-Z]/.test(ch) ? ch : "#"; };
+    if (!shown.length) {
+      $("#list").innerHTML = '<div class="empty">' + (cat === FAV && !q.trim() ? "Aucun favori pour l'instant : touchez l'étoile d'une fiche." : "Aucun contact ne correspond à « " + esc(q) + " ».") + "</div>";
+      return;
+    }
     let lastL = "";
     $("#list").innerHTML = shown.map((c) => {
-      const L = initial(c); const head = L !== lastL ? '<div class="letter" aria-hidden="true">' + L + "</div>" : ""; lastL = L;
-      const rows = [];
-      if (val(c, "telephones")) rows.push([IC.phone, linesHtml(c.telephones, hl)]);
-      if (val(c, "email")) rows.push([IC.mail, emailLines(c.email, hl)]);
-      const addr = [val(c, "adresse"), [val(c, "cp"), val(c, "ville")].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-      const mapQ = encodeURIComponent([val(c, "adresse"), val(c, "cp"), val(c, "ville") || "Marseille"].filter(Boolean).join(" "));
-      if (addr) rows.push([IC.pin, highlight(addr, hl) + (val(c, "adresse") ? ' <a class="maplink" href="https://www.google.com/maps/search/?api=1&amp;query=' + mapQ + '" target="_blank" rel="noopener">Itinéraire ↗</a>' : "")]);
-      const notes = val(c, "notes");
-      const isOpen = openCards.has(c.id) || shown.length <= 2;
-      const firstTel = (String(c.telephones || "").match(PHONE) || [])[0];
-      const sub = [esc(c.categorie || "Autres"), val(c, "ville") && val(c, "ville") !== "Marseille" ? esc(val(c, "ville")) : (val(c, "cp").startsWith("130") ? esc(+val(c, "cp").slice(3) + (val(c, "cp") === "13001" ? "er" : "e")) : "")].filter(Boolean).join(" · ");
-      return head + '<article class="card' + (isOpen ? " open" : "") + '" data-id="' + esc(c.id) + '">' +
-        '<div class="card-head">' +
-          '<button type="button" class="card-toggle" aria-expanded="' + isOpen + '" aria-controls="b-' + esc(c.id) + '">' +
-            '<span class="ct-name">' + highlight(c.nom, hl) + '</span>' +
-            '<span class="tag"><span class="dot" style="--dc:' + catColor(c.categorie || "Autres") + '"></span>' + sub + "</span>" +
-          "</button>" +
-          (firstTel ? '<span class="quickwrap"><a class="tel quick" href="tel:' + digits(firstTel) + '" title="Appeler">' + esc(firstTel) + "</a>" + callLink(digits(firstTel)) + "</span>" : "") +
-          '<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>' +
-        "</div>" +
-        '<div class="card-body" id="b-' + esc(c.id) + '"' + (isOpen ? "" : " hidden") + ">" +
-        rows.map(([ic, v]) => '<div class="row"><span class="ic" aria-hidden="true">' + ic + '</span><div class="v">' + v + "</div></div>").join("") +
-        (notes ? '<div class="notes open">' + rich(notes, hl).replace(/\n/g, "<br>") + "</div>" : "") +
-        '<div class="card-foot">' + stamp(c) + '<div class="card-actions">' +
-        (canWrite ? '<button class="btn" data-edit="' + esc(c.id) + '">' + IC.edit + "Modifier</button>" : "") +
-        '<button class="btn ghost" data-hist="' + esc(c.id) + '" title="Historique de cette fiche" aria-label="Historique de cette fiche">' + IC.hist + "</button></div></div></div></article>";
+      const L = initialOf(c); const head = L !== lastL ? '<div class="letter" aria-hidden="true">' + L + "</div>" : ""; lastL = L;
+      return head + cardHtml(c, hl, shown.length <= 2);
     }).join("");
   }
+
+  // ---------- favoris : propres à chaque personne (table « favoris », sinon gardés sur ce téléphone) ----------
+  const favKey = () => "annubus-favoris:" + uid;
+  function saveFavLocal() { try { localStorage.setItem(favKey(), JSON.stringify([...favs])); } catch (e) {} }
+  async function loadFavs() {
+    try { favs = new Set(JSON.parse(localStorage.getItem(favKey()) || "[]")); } catch (e) {}
+    const { data, error } = await sb.from("favoris").select("contact_id");
+    if (error) { favLocal = true; render(); return; }
+    favLocal = false;
+    const local = [...favs];
+    favs = new Set(data.map((r) => r.contact_id));
+    // favoris notés sur ce téléphone avant la création de la table : on les envoie
+    const missing = local.filter((id) => !favs.has(id));
+    if (missing.length) { const { error: e2 } = await sb.from("favoris").upsert(missing.map((id) => ({ email: uid, contact_id: id })), { onConflict: "email,contact_id", ignoreDuplicates: true }); if (!e2) missing.forEach((id) => favs.add(id)); }
+    saveFavLocal(); render();
+  }
+  async function toggleFav(id) {
+    const on = !favs.has(id);
+    if (on) favs.add(id); else favs.delete(id);
+    saveFavLocal(); render();
+    toast(on ? "Ajouté à vos favoris." : "Retiré de vos favoris.");
+    if (favLocal) return;
+    const { error } = on
+      ? await sb.from("favoris").upsert({ email: uid, contact_id: id }, { onConflict: "email,contact_id", ignoreDuplicates: true })
+      : await sb.from("favoris").delete().eq("email", uid).eq("contact_id", id);
+    if (error) favLocal = true; // table absente : on garde sur ce téléphone
+  }
+
+  // ---------- derniers appelés (gardés sur ce téléphone) ----------
+  const recKey = () => "annubus-recents:" + uid;
+  function loadRecents() { try { recents = JSON.parse(localStorage.getItem(recKey()) || "[]"); } catch (e) { recents = []; } }
+  function noteCall(a) {
+    const num = a.getAttribute("href").slice(4);
+    if (!num) return;
+    const card = a.closest(".card");
+    const id = card ? card.dataset.id : (a.dataset.cid || "");
+    let label = a.dataset.label || "";
+    const li = a.closest("li"); if (li && li.querySelector(".pl")) label = li.querySelector(".pl").textContent.trim();
+    const shown = a.classList.contains("tel") ? a.textContent.trim() : (recents.find((r) => r.num === num) || {}).shown || num.replace(/(\d{2})(?=\d)/g, "$1 ");
+    recents = [{ id, num, label, shown, at: Date.now() }].concat(recents.filter((r) => r.num !== num)).slice(0, 12);
+    try { localStorage.setItem(recKey(), JSON.stringify(recents)); } catch (e) {}
+    if (cat === HOME && !q.trim()) setTimeout(render, 400);
+  }
+  document.addEventListener("click", (e) => { const a = e.target.closest('a[href^="tel:"]'); if (a) noteCall(a); }, true);
 
   // ---------- feuilles (édition, historique, réglages) ----------
   function openSheet(mode, title) {
@@ -557,7 +716,7 @@ img { max-width: 100%; }
 
   async function openEditor(id) {
     const c = id ? byId.get(id) : null;
-    const base = c ? pick(c) : pick({ categorie: cat !== "Toutes" ? cat : "" });
+    const base = c ? pick(c) : pick({ categorie: [HOME, ALL, FAV].includes(cat) ? "" : cat });
     editor = { id, base, baseRev: c ? (c.rev || 0) : 0, busy: false, remote: false, conflicts: null };
     openSheet("edit", id ? "Modifier la fiche" : "Nouveau contact");
     const catList = [...new Set(contacts.map((x) => x.categorie).filter(Boolean))].sort((a, b) => a.localeCompare(b, "fr"));
@@ -818,7 +977,6 @@ img { max-width: 100%; }
   // ---------- événements ----------
   $("#q").addEventListener("input", (e) => { q = e.target.value; $("#clearQ").hidden = !q; render(); });
   $("#clearQ").addEventListener("click", () => { q = ""; $("#q").value = ""; $("#clearQ").hidden = true; render(); $("#q").focus(); });
-  $("#cats").addEventListener("click", (e) => { const b = e.target.closest("[data-cat]"); if (b) { cat = b.dataset.cat; render(); } });
   $("#btnAdd").addEventListener("click", () => openEditor(null));
   $("#btnHist").addEventListener("click", () => openHistory(null));
   $("#btnMenu").addEventListener("click", openMenu);
@@ -837,8 +995,12 @@ img { max-width: 100%; }
     card.querySelector(".card-toggle").setAttribute("aria-expanded", String(open));
   }
   document.addEventListener("click", async (e) => {
+    const catEl = e.target.closest("[data-cat]");
+    if (catEl) { cat = catEl.dataset.cat; if (cat === HOME) { q = ""; $("#q").value = ""; $("#clearQ").hidden = true; } render(); window.scrollTo(0, 0); return; }
+    const favEl = e.target.closest("[data-fav]");
+    if (favEl) { toggleFav(favEl.dataset.fav); return; }
     const headEl = e.target.closest(".card-head");
-    if (headEl && !e.target.closest(".tel, .call")) { toggleCard(headEl.closest(".card")); return; }
+    if (headEl && !e.target.closest(".tel, .call, .fav")) { toggleCard(headEl.closest(".card")); return; }
     const t = e.target.closest("button"); if (!t) return;
     if (t.dataset.copy) {
       const txt = t.dataset.copy;
@@ -1080,9 +1242,11 @@ img { max-width: 100%; }
     $("#btnAccess").hidden = !isAdmin;
     $("#auth").hidden = true; $("#app").hidden = false;
     $("#btnAdd").hidden = false; $("#btnHist").hidden = false; $("#btnMenu").hidden = false;
+    loadRecents();
     render();
     await loadNames();
     await reloadContacts();
+    loadFavs();
     await reloadHistory();
     sb.channel("annuaire")
       .on("postgres_changes", { event: "*", schema: "public", table: "contacts" }, (p) => {
