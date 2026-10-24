@@ -241,6 +241,9 @@ img { max-width: 100%; }
 .acc-add .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 @media (max-width: 480px) { .acc-add .row2 { grid-template-columns: 1fr; } }
 .acc-add input[type=email], .acc-add input[type=text] { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: var(--surface); }
+.acc-bulk summary { cursor: pointer; }
+.acc-bulk[open] { gap: 8px; }
+.acc-bulk textarea { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: var(--surface); font-family: var(--font-data); font-size: 14px; }
 .acc-add label.chk { display: flex; align-items: center; gap: 8px; font-size: 15px; }
 .acc-list { display: grid; gap: 6px; }
 .acc-item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; }
@@ -959,6 +962,11 @@ img { max-width: 100%; }
         '<div><button class="btn primary" type="submit" id="accAdd">Autoriser</button></div>' +
         '<p class="hint">Ensuite, envoyez-lui le lien de l\'application : ' + esc(APP_URL) + ' <button type="button" class="cp" data-copy="' + esc(APP_URL) + '" aria-label="Copier le lien" title="Copier le lien">' + IC.copy + "</button><br>Le guide (bouton ?) s'ouvrira tout seul à sa première visite.</p>" +
       "</form>" +
+      '<details class="acc-add acc-bulk"><summary><b>Autoriser une liste d\'adresses d\'un coup</b></summary>' +
+        '<p class="hint">Collez les adresses, une par ligne (ou séparées par des virgules). Vous pouvez mettre le prénom devant : « Sarah ; sarah@exemple.fr ». Les adresses déjà autorisées sont ignorées.</p>' +
+        '<textarea id="accBulk" rows="6" placeholder="sarah@exemple.fr&#10;Karim ; karim@exemple.fr&#10;lea@exemple.fr" aria-label="Liste d\'adresses"></textarea>' +
+        '<div><button class="btn primary" type="button" id="accBulkAdd">Autoriser toute la liste</button></div>' +
+      "</details>" +
       '<div class="field"><label>' + list.length + " personne" + (list.length > 1 ? "s" : "") + " autorisée" + (list.length > 1 ? "s" : "") + " · " + nbAdmins + " administrateur" + (nbAdmins > 1 ? "s" : "") + "</label></div>" +
       '<div class="acc-list">' + list.map((m) => {
         const me = m.email === uid;
@@ -984,8 +992,33 @@ img { max-width: 100%; }
       await loadNames(); renderAccess(); toast((nom || email) + " est autorisé·e. Envoyez-lui le lien de l'application.");
     });
   }
+  // « Sarah ; sarah@x.fr », « sarah@x.fr », « Sarah Martin <sarah@x.fr> », séparés par lignes, virgules ou points-virgules
+  function parseEmailList(text) {
+    const out = new Map();
+    String(text || "").split(/\n|,(?![^<]*>)/).forEach((line) => {
+      const m = line.match(/[\w.+'-]+@[\w-]+(?:\.[\w-]+)+/);
+      if (!m) return;
+      const email = m[0].toLowerCase();
+      const nom = line.replace(m[0], "").replace(/[<>;:()"]/g, " ").replace(/\s+/g, " ").trim();
+      if (!out.has(email)) out.set(email, { email, nom: nom || null, admin: false });
+    });
+    return [...out.values()];
+  }
+  async function addBulk() {
+    const rows = parseEmailList($("#accBulk").value);
+    if (!rows.length) { toast("Aucune adresse e-mail trouvée dans la liste."); return; }
+    const known = new Set(membres.map((m) => m.email));
+    const fresh = rows.filter((r) => !known.has(r.email));
+    if (!fresh.length) { toast("Toutes ces adresses sont déjà autorisées."); return; }
+    $("#accBulkAdd").disabled = true;
+    const { error } = await sb.from("membres").upsert(fresh, { onConflict: "email", ignoreDuplicates: true });
+    if (error) { toast(accErr(error)); $("#accBulkAdd").disabled = false; return; }
+    await loadNames(); renderAccess();
+    toast(fresh.length + " adresse" + (fresh.length > 1 ? "s autorisées" : " autorisée") + (rows.length > fresh.length ? " (" + (rows.length - fresh.length) + " déjà présente" + (rows.length - fresh.length > 1 ? "s" : "") + ")" : "") + ".");
+  }
   document.addEventListener("click", async (e) => {
     const b = e.target.closest("button"); if (!b || $("#sheet").dataset.mode !== "access") return;
+    if (b.id === "accBulkAdd") { addBulk(); return; }
     if (b.dataset.accAsk) { renderAccess(b.dataset.accAsk); return; }
     if (b.dataset.accCancel) { renderAccess(); return; }
     if (b.dataset.accDel) {
