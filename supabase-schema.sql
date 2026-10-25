@@ -159,3 +159,14 @@ create policy "chacun ses favoris" on public.favoris
   for all to authenticated
   using (public.est_membre() and email = lower(coalesce(auth.jwt() ->> 'email', '')))
   with check (public.est_membre() and email = lower(coalesce(auth.jwt() ->> 'email', '')));
+
+-- 9. Groupes marqués « pas des doublons » (partagés par toute l'équipe)
+create table if not exists public.pas_doublons (
+  cle   text primary key,            -- identifiants des fiches du groupe, tries et separes par |
+  par   text,
+  at    timestamptz not null default now()
+);
+alter table public.pas_doublons enable row level security;
+drop policy if exists "membres gerent pas_doublons" on public.pas_doublons;
+create policy "membres gerent pas_doublons" on public.pas_doublons
+  for all to authenticated using (public.est_membre()) with check (public.est_membre());

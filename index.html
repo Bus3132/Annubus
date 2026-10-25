@@ -882,7 +882,26 @@ main { padding-block: 16px 110px; }
   // ---------- comparer des fiches côte à côte ----------
   let cmp = null; // { ids, keep, back }
   const notDupKey = () => "annubus-pas-doublon:" + uid;
-  function notDupSet() { try { return new Set(JSON.parse(localStorage.getItem(notDupKey()) || "[]")); } catch (e) { return new Set(); } }
+  // choix partagés par toute l'équipe (table « pas_doublons ») ; copie sur le téléphone en secours
+  let notDups = null;
+  function notDupSet() {
+    if (!notDups) { try { notDups = new Set(JSON.parse(localStorage.getItem(notDupKey()) || "[]")); } catch (e) { notDups = new Set(); } }
+    return notDups;
+  }
+  async function loadNotDups() {
+    const local = notDupSet();
+    const { data, error } = await sb.from("pas_doublons").select("cle");
+    if (error) return; // table pas encore créée : on garde la copie du téléphone
+    notDups = new Set(data.map((r) => r.cle));
+    const missing = [...local].filter((k) => !notDups.has(k));
+    if (missing.length) { const { error: e2 } = await sb.from("pas_doublons").upsert(missing.map((k) => ({ cle: k, par: uid })), { onConflict: "cle", ignoreDuplicates: true }); if (!e2) missing.forEach((k) => notDups.add(k)); }
+    try { localStorage.setItem(notDupKey(), JSON.stringify([...notDups])); } catch (e) {}
+  }
+  async function markNotDup(k) {
+    notDupSet().add(k);
+    try { localStorage.setItem(notDupKey(), JSON.stringify([...notDups])); } catch (e) {}
+    try { await sb.from("pas_doublons").upsert({ cle: k, par: uid }, { onConflict: "cle", ignoreDuplicates: true }); } catch (e) {}
+  }
   function openCompare(ids, back) {
     cmp = { ids: ids.filter((id) => byId.has(id)), keep: null, back };
     if (cmp.ids.length < 2) { toast("Une des fiches n'existe plus."); if (back === "report") openDupReport(); return; }
@@ -1344,7 +1363,7 @@ main { padding-block: 16px 110px; }
     if (t.id === "catNewOk") { createCat(); return; }
     if (t.id === "telAdd") { addTelRow("", "", true); return; }
     if (t.id === "edDupSave") { editor.dupOk = true; saveEditor(null); return; }
-    if (t.id === "mDups") { openDupReport(); return; }
+    if (t.id === "mDups") { await loadNotDups(); openDupReport(); return; }
     if (t.id === "dupShowIgn") { openDupReport(true); return; }
     if (t.dataset.cmpGroup) { openCompare(t.dataset.cmpGroup.split("|"), "report"); return; }
     if (t.dataset.dupCmp) { const ids = t.dataset.dupCmp.split("|"); closeSheet(); openCompare(ids, "close"); return; }
@@ -1357,9 +1376,9 @@ main { padding-block: 16px 110px; }
     }
     if (t.id === "cmpBack") { openDupReport(); return; }
     if (t.id === "cmpNot") {
-      const k = cmp.ids.slice().sort().join("|"); const set = notDupSet(); set.add(k);
-      try { localStorage.setItem(notDupKey(), JSON.stringify([...set])); } catch (err) {}
-      toast("Noté : ces fiches ne seront plus proposées comme doublons.");
+      const k = cmp.ids.slice().sort().join("|"); t.disabled = true;
+      await markNotDup(k);
+      toast("Noté pour toute l'équipe : ces fiches ne seront plus proposées comme doublons.");
       if (cmp.back === "report") openDupReport(); else closeSheet();
       return;
     }
@@ -1642,6 +1661,7 @@ main { padding-block: 16px 110px; }
     await loadNames();
     await reloadContacts();
     loadFavs();
+    loadNotDups();
     await reloadHistory();
     sb.channel("annuaire")
       .on("postgres_changes", { event: "*", schema: "public", table: "contacts" }, (p) => {
