@@ -177,6 +177,34 @@ mark { background: var(--signal); color: var(--signal-ink); border-radius: 2px; 
 .dup-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--ink); }
 .dup-why { font-size: 13.5px; color: var(--warn-ink); }
 .dup .hint { color: var(--warn-ink); }
+.dup-card { background: var(--surface); color: var(--ink); border-radius: 6px; padding: 10px 12px; display: grid; gap: 6px; }
+.dup-head { line-height: 1.3; }
+.dup-body { display: grid; gap: 2px; font-size: 14.5px; }
+.dup-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.cmp-line { font-size: 14.5px; line-height: 1.35; overflow-wrap: anywhere; padding: 1px 0; }
+.cmp-line .pl { color: var(--muted); }
+.cmp-line .nb { font-family: var(--font-data); font-weight: 600; white-space: nowrap; }
+.cmp-line.shared { background: var(--accent); color: var(--accent-ink); border-radius: 3px; padding: 1px 4px; }
+.cmp-line.shared .pl { color: var(--accent-ink); }
+.cmp-addr { font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+.cmp-empty { color: var(--grey); font-size: 13.5px; }
+.cmp-wrap { overflow-x: auto; margin-inline: -4px; padding-inline: 4px; }
+.cmp { display: grid; gap: 6px 8px; align-items: stretch; }
+.cmp-keep { display: flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700; border: 2px solid var(--line); border-radius: 6px; padding: 7px 8px; cursor: pointer; }
+.cmp-keep.on { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.cmp-label { grid-column: 1 / -1; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+.cmp-cell { background: var(--bg); border: 2px solid transparent; border-radius: 6px; padding: 8px; font-size: 14.5px; min-width: 0; overflow-wrap: anywhere; }
+.cmp-cell.differ { border-color: var(--line); border-style: dashed; }
+.cmp-cell.kept { box-shadow: inset 3px 0 0 var(--accent); }
+.cmp-cell .stamp { font-size: 12px; }
+.cmp-result { border: 2px solid var(--accent); border-radius: 6px; padding: 12px; display: grid; gap: 6px; box-shadow: 4px 4px 0 var(--blue); }
+.cmp-result h4 { margin: 0; font-size: 14px; color: var(--accent); }
+.dup-group { display: grid; gap: 4px; text-align: left; width: 100%; background: var(--surface); color: var(--ink); border: 2px solid var(--line); border-radius: 6px; padding: 12px; }
+.dup-group:hover { border-color: var(--accent); }
+.dup-group.ign { opacity: .6; }
+.dg-num { font-family: var(--font-data); font-weight: 700; color: var(--accent); }
+.dg-name { font-weight: 700; overflow-wrap: anywhere; }
+.dg-go { font-size: 13.5px; color: var(--accent); justify-self: end; }
 .choice { display: grid; gap: 6px; }
 .choice label { display: grid; grid-template-columns: 20px 1fr; gap: 8px; align-items: start; border: 1px solid var(--line); border-radius: 8px; padding: 8px; font-size: 14px; white-space: pre-line; overflow-wrap: anywhere; }
 .choice label b { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
@@ -765,7 +793,8 @@ main { padding-block: 16px 110px; }
   function pick(o) { const r = {}; FIELDS.forEach(([k]) => r[k] = val(o, k)); return r; }
 
   // ---------- doublons : même numéro ou nom quasi identique dans une autre fiche ----------
-  const numsOf = (c) => { const out = new Set(); parseTels(c.telephones).forEach((t) => { const d = digits(t.num); if (d.length >= 4) out.add(d.length === 10 ? d : d); }); return out; };
+  const numsOf = (c) => { const out = new Set(); parseTels(c.telephones).forEach((t) => { const d = digits(t.num); if (d.length >= 4) out.add(d); }); return out; };
+  const fmtNum = (d) => (d.length === 10 ? d.replace(/(\d{2})(?=\d)/g, "$1 ") : d);
   const simpleName = (n) => norm(n).replace(/[^a-z0-9]+/g, " ").replace(/\b(le|la|les|de|du|des|dr|d|l)\b/g, " ").replace(/\s+/g, " ").trim();
   function findDuplicates(nom, telsText, exceptId) {
     const nums = numsOf({ telephones: telsText });
@@ -782,13 +811,31 @@ main { padding-block: 16px 110px; }
     });
     return hits;
   }
+
+  // téléphones d'une fiche, numéros communs en surbrillance
+  function telsCmpHtml(text, sharedSet) {
+    const ts = parseTels(text);
+    if (!ts.length) return '<i class="cmp-empty">aucun</i>';
+    return ts.map((t) => { const d = digits(t.num); const on = sharedSet && sharedSet.has(d);
+      return '<div class="cmp-line' + (on ? " shared" : "") + '">' + (t.label ? '<span class="pl">' + esc(t.label) + "</span> " : "") + '<span class="nb">' + esc(t.num) + "</span></div>"; }).join("");
+  }
+  const addrOf = (c) => [val(c, "adresse"), [val(c, "cp"), val(c, "ville")].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+
+  // aperçu de la fiche existante directement dans l'éditeur : pas besoin de l'ouvrir
   function dupHtml(hits) {
     if (!hits.length) return "";
-    return '<div class="dup"><h4>Cette fiche existe peut-être déjà</h4>' + hits.slice(0, 4).map((h) =>
-      '<div class="dup-item"><div><b>' + esc(h.c.nom) + '</b><span class="stamp"> · ' + esc(h.c.categorie || "Autres") + "</span><br><span class=\"dup-why\">" +
-      (h.shared.length ? "même numéro : " + h.shared.map((d) => d.length === 10 ? d.replace(/(\d{2})(?=\d)/g, "$1 ") : d).join(", ") : "nom très proche") +
-      '</span></div><button type="button" class="btn" data-dup-open="' + esc(h.c.id) + '">Voir / modifier cette fiche</button></div>').join("") +
-      '<p class="hint">Si c\'est la même structure, complétez plutôt la fiche existante (vous pouvez y ajouter un numéro ou un nom de personne). Sinon, enregistrez quand même.</p></div>';
+    const isNew = !editor || !editor.id;
+    return '<div class="dup"><h4>Cette fiche existe peut-être déjà</h4>' + hits.slice(0, 3).map((h) => {
+      const sh = new Set(h.shared);
+      return '<div class="dup-card"><div class="dup-head"><b>' + esc(h.c.nom) + '</b><span class="stamp"> · ' + esc(h.c.categorie || "Autres") + "</span></div>" +
+        '<div class="dup-why">' + (h.shared.length ? "Même numéro : " + h.shared.map(fmtNum).join(", ") : "Nom très proche") + "</div>" +
+        '<div class="dup-body">' + telsCmpHtml(h.c.telephones, sh) + (addrOf(h.c) ? '<div class="cmp-addr">' + esc(addrOf(h.c)) + "</div>" : "") + "</div>" +
+        '<div class="dup-acts">' +
+          (isNew ? '<button type="button" class="btn primary" data-dup-into="' + esc(h.c.id) + '">Ajouter ma saisie à cette fiche</button>'
+                 : '<button type="button" class="btn" data-dup-cmp="' + esc(editor.id + "|" + h.c.id) + '">Comparer les deux fiches</button>') +
+        "</div></div>";
+    }).join("") +
+    '<p class="hint">' + (isNew ? "« Ajouter ma saisie » complète la fiche existante avec vos numéros, e-mails et infos, sans rien effacer." : "Si c'est la même structure, comparez les deux fiches pour les fusionner.") + " Sinon, enregistrez normalement.</p></div>";
   }
   let dupTimer = null;
   function checkDup() {
@@ -796,6 +843,92 @@ main { padding-block: 16px 110px; }
     const nom = $("#f-nom").value, tels = serializeTels();
     editor.dups = findDuplicates(nom, tels, editor.id);
     $("#edDup").innerHTML = dupHtml(editor.dups);
+  }
+
+  // ---------- fusion : on garde une fiche, on y ajoute ce qui manque, les autres sont supprimées (restaurables) ----------
+  function unionLines(texts, keyFn) {
+    const seen = new Set(), out = [];
+    texts.forEach((t) => String(t || "").split("\n").map((l) => l.trim()).filter(Boolean).forEach((l) => { const k = keyFn(l); if (!seen.has(k)) { seen.add(k); out.push(l); } }));
+    return out.join("\n");
+  }
+  function mergeValues(base, others) {
+    const all = [base, ...others];
+    const m = { ...base };
+    ["nom", "categorie", "adresse", "cp", "ville"].forEach((k) => { if (!val(m, k)) m[k] = (all.find((o) => val(o, k)) || {})[k] || ""; });
+    // si l'adresse vient d'une autre fiche, on prend aussi son code postal et sa ville
+    if (!val(base, "adresse") && m.adresse) { const src = all.find((o) => val(o, "adresse") === m.adresse); if (src) { m.cp = val(src, "cp") || m.cp; m.ville = val(src, "ville") || m.ville; } }
+    m.telephones = unionLines(all.map((o) => o.telephones), (l) => { const t = parseTels(l)[0] || { num: l }; const d = digits(t.num); return d.length >= 4 ? "n" + d : "t" + norm(l); });
+    m.email = unionLines(all.map((o) => o.email), (l) => norm(l));
+    m.notes = unionLines(all.map((o) => o.notes), (l) => norm(l));
+    return m;
+  }
+  async function mergeInto(targetId, otherIds, extra) {
+    const t = byId.get(targetId); if (!t) return false;
+    const others = otherIds.map((id) => byId.get(id)).filter(Boolean);
+    const before = pick(t);
+    const merged = mergeValues(before, others.map(pick).concat(extra ? [extra] : []));
+    try {
+      if (!(await updateIfRev(t.id, t.rev, toRow(merged)))) { toast("La fiche vient d'être modifiée par un·e collègue. Réessayez."); await reloadContacts(); return false; }
+      await logHistory("modif", t.id, merged.nom, before, merged);
+      for (const o of others) {
+        const { error } = await sb.from("contacts").delete().eq("id", o.id);
+        if (!error) await logHistory("suppression", o.id, o.nom, pick(o), null);
+      }
+      await reloadContacts();
+      return true;
+    } catch (e) { toast("Fusion impossible pour le moment. Vérifiez la connexion."); return false; }
+  }
+
+  // ---------- comparer des fiches côte à côte ----------
+  let cmp = null; // { ids, keep, back }
+  const notDupKey = () => "annubus-pas-doublon:" + uid;
+  function notDupSet() { try { return new Set(JSON.parse(localStorage.getItem(notDupKey()) || "[]")); } catch (e) { return new Set(); } }
+  function openCompare(ids, back) {
+    cmp = { ids: ids.filter((id) => byId.has(id)), keep: null, back };
+    if (cmp.ids.length < 2) { toast("Une des fiches n'existe plus."); if (back === "report") openDupReport(); return; }
+    // par défaut on garde la fiche la plus complète
+    const score = (c) => FIELDS.reduce((n, [k]) => n + (val(c, k) ? val(c, k).length : 0), 0);
+    cmp.keep = cmp.ids.slice().sort((a, b) => score(byId.get(b)) - score(byId.get(a)))[0];
+    openSheet("compare", "Comparer les fiches");
+    renderCompare();
+  }
+  function renderCompare() {
+    const cs = cmp.ids.map((id) => byId.get(id));
+    const counts = new Map();
+    cs.forEach((c) => numsOf(c).forEach((d) => counts.set(d, (counts.get(d) || 0) + 1)));
+    const shared = new Set([...counts].filter(([, n]) => n > 1).map(([d]) => d));
+    const n = cs.length;
+    const cols = 'style="grid-template-columns: repeat(' + n + ', minmax(' + (n > 2 ? 150 : 0) + 'px, 1fr))"';
+    const rows = [
+      ["Nom", (c) => esc(c.nom), (c) => simpleName(c.nom)],
+      ["Catégorie", (c) => esc(c.categorie || "Autres"), (c) => norm(c.categorie)],
+      ["Téléphones", (c) => telsCmpHtml(c.telephones, shared), (c) => [...numsOf(c)].sort().join()],
+      ["E-mails", (c) => (val(c, "email") ? esc(c.email).replace(/\n/g, "<br>") : '<i class="cmp-empty">aucun</i>'), (c) => norm(c.email)],
+      ["Adresse", (c) => (addrOf(c) ? esc(addrOf(c)) : '<i class="cmp-empty">aucune</i>'), (c) => norm(addrOf(c))],
+      ["Infos utiles", (c) => (val(c, "notes") ? esc(cut(val(c, "notes"))).replace(/\n/g, "<br>") : '<i class="cmp-empty">aucune</i>'), (c) => norm(c.notes)],
+      ["Mise à jour", (c) => stamp(c) || '<i class="cmp-empty">inconnue</i>', () => ""],
+    ];
+    let html = '<p class="hint">Les numéros communs sont <span class="cmp-line shared" style="display:inline;padding:0 4px">surlignés</span>, les champs différents encadrés. Choisissez la fiche à garder : on y ajoute tout ce que les autres ont en plus.</p>' +
+      '<div class="cmp-wrap"><div class="cmp" ' + cols + ">";
+    html += cs.map((c) => '<label class="cmp-keep' + (c.id === cmp.keep ? " on" : "") + '"><input type="radio" name="cmpKeep" value="' + esc(c.id) + '"' + (c.id === cmp.keep ? " checked" : "") + "> Garder celle-ci</label>").join("");
+    rows.forEach(([label, show, key]) => {
+      const keys = cs.map(key); const differ = new Set(keys).size > 1;
+      html += '<div class="cmp-label">' + label + "</div>" + cs.map((c) => '<div class="cmp-cell' + (differ && label !== "Mise à jour" ? " differ" : "") + (c.id === cmp.keep ? " kept" : "") + '">' + show(c) + "</div>").join("");
+    });
+    html += "</div></div>";
+    // aperçu du résultat
+    const keepC = byId.get(cmp.keep);
+    const m = mergeValues(pick(keepC), cs.filter((c) => c.id !== cmp.keep).map(pick));
+    html += '<div class="cmp-result"><h4>Après la fusion, il restera une seule fiche :</h4>' +
+      '<div><b>' + esc(m.nom) + '</b><span class="stamp"> · ' + esc(m.categorie || "Autres") + "</span></div>" +
+      telsCmpHtml(m.telephones, null) +
+      (val(m, "email") ? '<div class="cmp-addr">' + esc(m.email).replace(/\n/g, "<br>") + "</div>" : "") +
+      (addrOf(m) ? '<div class="cmp-addr">' + esc(addrOf(m)) + "</div>" : "") +
+      '<p class="hint">L\'autre fiche est supprimée ; tout reste restaurable 30 jours depuis l\'historique.</p></div>';
+    $("#sheetBody").innerHTML = html;
+    $("#sheetFoot").innerHTML = (cmp.back === "report" ? '<button class="btn" id="cmpBack">← Liste des doublons</button>' : '<button class="btn" id="edCancel">Fermer</button>') +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="cmpNot">Ce ne sont pas des doublons</button>' +
+      (canWrite ? '<button class="btn primary" id="cmpMerge">Fusionner</button>' : "") + "</div>";
   }
 
   async function openEditor(id) {
@@ -1092,18 +1225,28 @@ main { padding-block: 16px 110px; }
   }
   $("#btnRenameCat").addEventListener("click", openRenameCat);
 
-  // ---------- rapport : fiches qui partagent un numéro ----------
-  function openDupReport() {
+  // ---------- rapport : groupes de fiches qui partagent au moins un numéro ----------
+  function dupGroups() {
     const byNum = new Map();
-    contacts.forEach((c) => numsOf(c).forEach((d) => { if (!byNum.has(d)) byNum.set(d, []); byNum.get(d).push(c); }));
-    const groups = [...byNum.entries()].filter(([, l]) => l.length > 1).sort((a, b) => b[1].length - a[1].length);
+    contacts.forEach((c) => numsOf(c).forEach((d) => { if (!byNum.has(d)) byNum.set(d, new Set()); byNum.get(d).add(c.id); }));
+    const groups = new Map(); // clé = ids triés
+    byNum.forEach((ids, d) => { if (ids.size < 2) return; const k = [...ids].sort().join("|"); if (!groups.has(k)) groups.set(k, { ids: [...ids].sort(), nums: [] }); groups.get(k).nums.push(d); });
+    return [...groups.entries()].map(([k, g]) => ({ key: k, ...g }));
+  }
+  function openDupReport(showIgnored) {
+    const ignored = notDupSet();
+    const all = dupGroups();
+    const groups = all.filter((g) => showIgnored || !ignored.has(g.key)).sort((a, b) => b.ids.length - a.ids.length || norm(byId.get(a.ids[0]).nom).localeCompare(norm(byId.get(b.ids[0]).nom)));
+    const nIgn = all.length - all.filter((g) => !ignored.has(g.key)).length;
     openSheet("dups", "Doublons possibles");
     $("#sheetBody").innerHTML = groups.length
-      ? '<p class="hint">Un même numéro peut être partagé pour de bonnes raisons (standard d\'un hôpital, plusieurs services). Ouvrez les fiches pour décider : fusionner, ou laisser.</p>' +
-        groups.map(([d, l]) => '<div class="h-item"><div class="who"><b class="tel" style="cursor:default">' + (d.length === 10 ? d.replace(/(\d{2})(?=\d)/g, "$1 ") : d) + "</b> · " + l.length + " fiches</div>" +
-          l.map((c) => '<div class="dup-item"><span>' + esc(c.nom) + '<span class="stamp"> · ' + esc(c.categorie || "Autres") + "</span></span>" + (canWrite ? '<button type="button" class="btn" data-dup-open="' + esc(c.id) + '">Ouvrir</button>' : "") + "</div>").join("") + "</div>").join("")
-      : '<div class="empty">Aucun numéro n\'apparaît dans deux fiches différentes.</div>';
-    $("#sheetFoot").innerHTML = '<span class="stamp">' + groups.length + " numéro" + (groups.length > 1 ? "s" : "") + " en double</span><button class=\"btn\" id=\"edCancel\">Fermer</button>";
+      ? '<p class="hint">Fiches qui ont un numéro en commun. Touchez un groupe pour comparer les fiches côte à côte et, si besoin, les fusionner.</p>' +
+        groups.map((g) => '<button type="button" class="dup-group' + (ignored.has(g.key) ? " ign" : "") + '" data-cmp-group="' + esc(g.key) + '">' +
+          '<span class="dg-num">' + g.nums.map(fmtNum).join(" · ") + "</span>" +
+          g.ids.map((id) => { const c = byId.get(id); return '<span class="dg-name">' + esc(c.nom) + '<span class="stamp"> · ' + esc(c.categorie || "Autres") + "</span></span>"; }).join("") +
+          '<span class="dg-go">' + (ignored.has(g.key) ? "Marqué « pas un doublon » · " : "") + "Comparer →</span></button>").join("")
+      : '<div class="empty">' + (all.length ? "Tous les numéros en commun ont été marqués « pas un doublon »." : "Aucun numéro n'apparaît dans deux fiches différentes.") + "</div>";
+    $("#sheetFoot").innerHTML = '<span class="stamp">' + groups.length + " groupe" + (groups.length > 1 ? "s" : "") + (nIgn && !showIgnored ? ' · <button class="linkbtn" type="button" id="dupShowIgn">' + (nIgn > 1 ? "voir aussi les " + nIgn + " écartés" : "voir aussi le groupe écarté") + "</button>" : "") + '</span><button class="btn" id="edCancel">Fermer</button>';
   }
 
   // ---------- partager une fiche (WhatsApp, SMS…) — les « infos utiles » ne sont jamais envoyées ----------
@@ -1165,6 +1308,7 @@ main { padding-block: 16px 110px; }
   $("#btnMenu").addEventListener("click", openMenu);
   $("#sheetClose").addEventListener("click", closeSheet);
   $("#sheet").addEventListener("click", (e) => { if (e.target === $("#sheet")) closeSheet(); });
+  $("#sheet").addEventListener("change", (e) => { if (e.target.name === "cmpKeep" && cmp) { cmp.keep = e.target.value; renderCompare(); } });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && e.target.id === "catNew") { e.preventDefault(); createCat(); return; }
     if (e.key === "Enter" && e.target.id === "rcName") { e.preventDefault(); doRenameCat(); return; }
@@ -1200,8 +1344,34 @@ main { padding-block: 16px 110px; }
     if (t.id === "catNewOk") { createCat(); return; }
     if (t.id === "telAdd") { addTelRow("", "", true); return; }
     if (t.id === "edDupSave") { editor.dupOk = true; saveEditor(null); return; }
-    if (t.dataset.dupOpen) { const target = t.dataset.dupOpen; closeSheet(); openCards.add(target); cat = ALL; q = ""; $("#q").value = ""; $("#clearQ").hidden = true; render(); openEditor(target); return; }
     if (t.id === "mDups") { openDupReport(); return; }
+    if (t.id === "dupShowIgn") { openDupReport(true); return; }
+    if (t.dataset.cmpGroup) { openCompare(t.dataset.cmpGroup.split("|"), "report"); return; }
+    if (t.dataset.dupCmp) { const ids = t.dataset.dupCmp.split("|"); closeSheet(); openCompare(ids, "close"); return; }
+    if (t.dataset.dupInto) {
+      const target = byId.get(t.dataset.dupInto); if (!target || !editor) return;
+      const mine = formValues(); t.disabled = true;
+      if (await mergeInto(target.id, [], mine)) { closeSheet(); openCards.add(target.id); cat = ALL; q = ""; $("#q").value = ""; $("#clearQ").hidden = true; render(); toast("Ajouté à la fiche « " + target.nom + " »."); }
+      else t.disabled = false;
+      return;
+    }
+    if (t.id === "cmpBack") { openDupReport(); return; }
+    if (t.id === "cmpNot") {
+      const k = cmp.ids.slice().sort().join("|"); const set = notDupSet(); set.add(k);
+      try { localStorage.setItem(notDupKey(), JSON.stringify([...set])); } catch (err) {}
+      toast("Noté : ces fiches ne seront plus proposées comme doublons.");
+      if (cmp.back === "report") openDupReport(); else closeSheet();
+      return;
+    }
+    if (t.id === "cmpMerge") {
+      t.disabled = true;
+      const keepId = cmp.keep, others = cmp.ids.filter((id) => id !== keepId), back = cmp.back;
+      if (await mergeInto(keepId, others)) {
+        openCards.add(keepId); toast("Fiches fusionnées. Annulable depuis l'historique.");
+        if (back === "report" && dupGroups().length) openDupReport(); else { closeSheet(); cat = ALL; render(); }
+      } else t.disabled = false;
+      return;
+    }
     if (t.dataset.teldel) {
       const row = t.closest(".telrow"); const next = row.nextElementSibling || row.previousElementSibling;
       row.remove();
