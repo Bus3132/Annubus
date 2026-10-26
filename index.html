@@ -339,6 +339,13 @@ main { padding-block: 16px 110px; }
 @media (max-width: 420px) { #btnRenameCat .label { display: none; } }
 #btnRenameCat svg { width: 14px; height: 14px; }
 .hint-box.scope { grid-column: 1 / -1; margin-bottom: 4px; }
+.imp-list { display: grid; gap: 6px; }
+.imp-row { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; border: 2px solid var(--line); border-radius: 6px; padding: 8px 10px; cursor: pointer; }
+.imp-row input { width: 18px; height: 18px; margin-top: 2px; }
+.imp-row.dupe { border-color: var(--signal); border-style: dashed; }
+.imp-main { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.imp-tel { font-family: var(--font-data); font-size: 13.5px; color: var(--muted); }
+.imp-why { font-size: 13.5px; color: var(--signal); }
 .installbtn svg { width: 18px; height: 18px; }
 .installbtn.big { justify-content: center; padding: 12px; font-size: 16px; box-shadow: 4px 4px 0 var(--blue); }
 .tuto .installbtn { justify-self: start; padding: 12px 18px; font-size: 16px; box-shadow: 4px 4px 0 var(--blue); }
@@ -1296,6 +1303,121 @@ main { padding-block: 16px 110px; }
     $("#sheetFoot").innerHTML = '<span></span><button class="btn" id="edCancel">Fermer</button>';
   }
 
+  // ---------- import CSV (administrateurs) ----------
+  // lit un fichier en UTF-8, ou en Windows-1252 (CSV enregistré par un vieil Excel)
+  async function readTextFile(file) {
+    const buf = await file.arrayBuffer();
+    try { return new TextDecoder("utf-8", { fatal: true }).decode(buf).replace(/^﻿/, ""); }
+    catch (e) { return new TextDecoder("windows-1252").decode(buf); }
+  }
+  // CSV avec ; , ou tabulation, guillemets et retours à la ligne dans les cellules
+  function parseCsv(text) {
+    const first = text.split(/\r?\n/)[0] || "";
+    const cnt = (ch) => first.split(ch).length - 1;
+    const sep = [";", ",", "\t"].sort((a, b) => cnt(b) - cnt(a))[0];
+    const rows = []; let row = [], cell = "", inQ = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (inQ) {
+        if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else inQ = false; }
+        else cell += ch;
+      } else if (ch === '"') inQ = true;
+      else if (ch === sep) { row.push(cell); cell = ""; }
+      else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(cell); rows.push(row); row = []; cell = ""; }
+      else cell += ch;
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter((r) => r.some((c) => c.trim()));
+  }
+  // en-têtes reconnus (sans accents ni majuscules)
+  const COLS = [
+    ["nom", /^(nom|name|structure|intitule|etablissement|organisme|contact)$/],
+    ["categorie", /^(categorie|category|type|rubrique)$/],
+    ["telephones", /(tel|phone|numero|portable|mobile|fixe)/],
+    ["email", /(mail|courriel)/],
+    ["adresse", /^(adresse|address|rue)$/],
+    ["cp", /^(cp|code postal|codepostal|code_postal|postal)$/],
+    ["ville", /^(ville|city|commune)$/],
+    ["notes", /(info|note|comment|remarque|horaire|precision)/],
+  ];
+  let imp = null; // { rows: [{ v, dup, why, on }], ignored: [] }
+  function openImport() {
+    imp = null;
+    openSheet("import", "Importer des fiches (CSV)");
+    $("#sheetBody").innerHTML =
+      '<p class="hint">Un fichier CSV (Excel : Fichier › Enregistrer sous › CSV), avec une ligne d\'en-tête. Colonnes reconnues : <b>Nom</b> (obligatoire), Catégorie, Téléphones (une ou plusieurs colonnes), E-mails, Adresse, Code postal, Ville, Infos utiles. Le plus simple : partir du modèle, ou d\'un export d\'Annubus.</p>' +
+      '<div class="share-acts"><button type="button" class="btn" id="impModel">Télécharger le modèle</button>' +
+      '<label class="btn primary" style="cursor:pointer">Choisir le fichier CSV<input type="file" id="impFile" accept=".csv,.txt,text/csv" hidden></label></div>' +
+      '<div id="impOut"></div>';
+    $("#sheetFoot").innerHTML = '<span class="stamp">Rien n\'est enregistré avant la confirmation.</span><button class="btn" id="edCancel">Fermer</button>';
+  }
+  function downloadText(name, text) {
+    const blob = new Blob(["﻿" + text], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+  async function loadImportFile(file) {
+    const rows = parseCsv(await readTextFile(file));
+    if (rows.length < 2) { $("#impOut").innerHTML = '<div class="notice">Le fichier est vide ou n\'a pas de ligne d\'en-tête.</div>'; return; }
+    const head = rows[0].map((h) => norm(h).replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim());
+    const map = head.map((h) => { const f = COLS.find(([, re]) => re.test(h)); return f ? f[0] : null; });
+    if (!map.includes("nom")) { $("#impOut").innerHTML = '<div class="notice">Aucune colonne « Nom » trouvée dans la première ligne. Colonnes lues : ' + esc(rows[0].join(" | ")) + "</div>"; return; }
+    const ignored = rows[0].filter((_, i) => !map[i]).filter((h) => h.trim());
+    const seenNums = new Map(), seenNames = new Map();
+    const out = [];
+    rows.slice(1).forEach((r) => {
+      const v = pick({});
+      r.forEach((cell, i) => {
+        const k = map[i]; const t = String(cell || "").trim(); if (!k || !t) return;
+        if (k === "telephones") { const lab = rows[0][i].trim(); const multi = map.filter((x) => x === "telephones").length > 1;
+          v.telephones += (v.telephones ? "\n" : "") + (multi && !/^t[ée]l[ée]phones?$/i.test(lab) && !t.includes("\n") ? lab + " : " + t : t); }
+        else if (k === "notes" || k === "email") v[k] += (v[k] ? "\n" : "") + t;
+        else if (!v[k]) v[k] = t;
+      });
+      if (!v.nom) return;
+      if (/^\d{4}$/.test(v.cp)) v.cp = "0" + v.cp; // Excel enlève le 0 des codes postaux
+      // doublons : avec l'annuaire, puis avec les lignes déjà lues du fichier
+      const hits = findDuplicates(v.nom, v.telephones, null);
+      let why = hits.length ? (hits[0].shared.length ? "même numéro que « " + hits[0].c.nom + " »" : "nom proche de « " + hits[0].c.nom + " »") : "";
+      if (!why) { for (const d of numsOf(v)) if (seenNums.has(d)) { why = "même numéro que la ligne « " + seenNums.get(d) + " »"; break; } }
+      if (!why && seenNames.has(simpleName(v.nom))) why = "en double dans le fichier";
+      numsOf(v).forEach((d) => { if (!seenNums.has(d)) seenNums.set(d, v.nom); });
+      seenNames.set(simpleName(v.nom), 1);
+      out.push({ v, why, on: !why });
+    });
+    imp = { rows: out, ignored };
+    renderImport();
+  }
+  function renderImport() {
+    if (!imp) return;
+    const n = imp.rows.filter((r) => r.on).length, nd = imp.rows.filter((r) => r.why).length;
+    $("#impOut").innerHTML =
+      '<div class="notice" style="background:var(--chip);color:var(--ink)">' + imp.rows.length + " ligne" + (imp.rows.length > 1 ? "s" : "") + " lue" + (imp.rows.length > 1 ? "s" : "") +
+        (nd ? " · <b>" + nd + " doublon" + (nd > 1 ? "s" : "") + " possible" + (nd > 1 ? "s" : "") + "</b>, décoché" + (nd > 1 ? "s" : "") + " par défaut" : "") +
+        (imp.ignored.length ? "<br>Colonnes ignorées : " + esc(imp.ignored.join(", ")) : "") + "</div>" +
+      '<div class="imp-list">' + imp.rows.map((r, i) =>
+        '<label class="imp-row' + (r.why ? " dupe" : "") + '"><input type="checkbox" data-imp="' + i + '"' + (r.on ? " checked" : "") + ">" +
+        '<span class="imp-main"><span><b>' + esc(r.v.nom) + '</b><span class="stamp"> · ' + esc(r.v.categorie || "Autres") + "</span></span>" +
+        (r.v.telephones ? '<span class="imp-tel">' + esc(r.v.telephones.split("\n").slice(0, 2).join(" · ")) + (r.v.telephones.split("\n").length > 2 ? " …" : "") + "</span>" : '<span class="imp-tel">sans numéro</span>') +
+        (r.why ? '<span class="imp-why">Doublon possible : ' + esc(r.why) + "</span>" : "") + "</span></label>").join("") + "</div>";
+    $("#sheetFoot").innerHTML = '<button class="btn" id="edCancel">Annuler</button><button class="btn primary" id="impGo"' + (n ? "" : " disabled") + ">Importer " + n + " fiche" + (n > 1 ? "s" : "") + "</button>";
+  }
+  async function doImport() {
+    const sel = imp.rows.filter((r) => r.on); if (!sel.length) return;
+    $("#impGo").disabled = true;
+    let ok = 0, ko = 0;
+    for (let i = 0; i < sel.length; i += 50) {
+      const chunk = sel.slice(i, i + 50).map((r) => ({ id: norm(r.v.nom).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) + "-" + Math.random().toString(36).slice(2, 6), v: r.v }));
+      $("#impGo").textContent = "Import… " + Math.min(i + 50, sel.length) + " / " + sel.length;
+      const { error } = await sb.from("contacts").insert(chunk.map((x) => ({ id: x.id, ...toRow(x.v), rev: 1, ...stampRow() })));
+      if (error) { ko += chunk.length; continue; }
+      ok += chunk.length;
+      try { await sb.from("historique").insert(chunk.map((x) => ({ action: "ajout", contact_id: x.id, nom: x.v.nom, par: uid, avant: null, apres: x.v }))); } catch (e) {}
+    }
+    closeSheet(); await reloadContacts();
+    toast(ok + " fiche" + (ok > 1 ? "s importées" : " importée") + (ko ? " · " + ko + " en échec (réessayez)" : "") + ". Annulable une par une depuis l'historique.");
+  }
+
   // ---------- réglages : logo + copie de sauvegarde ----------
   function openMenu() {
     openSheet("menu", "Réglages");
@@ -1306,6 +1428,7 @@ main { padding-block: 16px 110px; }
       '<button class="btn" type="button" data-help="1">? Guide d\'installation et de connexion</button></div>' +
       '<div class="field"><label>Connecté·e</label><div>' + esc(uid || "") + (isAdmin ? " · administrateur" : "") + "</div></div>" +
       '<div class="field"><label>Copie de sauvegarde</label><div><button class="btn" id="csv">Télécharger l\'annuaire (CSV, ouvre dans Excel)</button></div></div>' +
+      (isAdmin ? '<div class="field"><label>Import (administrateurs)</label><div><button class="btn" id="mImport">Importer des fiches depuis un fichier CSV</button></div></div>' : "") +
       '';
     $("#sheetFoot").innerHTML = '<span class="stamp">' + contacts.length + ' contacts</span><button class="btn" id="logout">Se déconnecter</button>';
   }
@@ -1327,7 +1450,10 @@ main { padding-block: 16px 110px; }
   $("#btnMenu").addEventListener("click", openMenu);
   $("#sheetClose").addEventListener("click", closeSheet);
   $("#sheet").addEventListener("click", (e) => { if (e.target === $("#sheet")) closeSheet(); });
-  $("#sheet").addEventListener("change", (e) => { if (e.target.name === "cmpKeep" && cmp) { cmp.keep = e.target.value; renderCompare(); } });
+  $("#sheet").addEventListener("change", async (e) => {
+    if (e.target.id === "impFile" && e.target.files[0]) { await loadImportFile(e.target.files[0]); e.target.value = ""; return; }
+    if (e.target.dataset.imp !== undefined && imp) { imp.rows[+e.target.dataset.imp].on = e.target.checked; const n = imp.rows.filter((r) => r.on).length; $("#impGo").disabled = !n; $("#impGo").textContent = "Importer " + n + " fiche" + (n > 1 ? "s" : ""); return; }
+    if (e.target.id === "accFile" && e.target.files[0]) { const t = await readTextFile(e.target.files[0]); const ta = $("#accBulk"); ta.value = (ta.value ? ta.value + "\n" : "") + t; e.target.value = ""; toast(parseEmailList(t).length + " adresse(s) trouvée(s) dans le fichier. Vérifiez puis « Autoriser toute la liste »."); return; } if (e.target.name === "cmpKeep" && cmp) { cmp.keep = e.target.value; renderCompare(); } });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && e.target.id === "catNew") { e.preventDefault(); createCat(); return; }
     if (e.key === "Enter" && e.target.id === "rcName") { e.preventDefault(); doRenameCat(); return; }
@@ -1415,6 +1541,9 @@ main { padding-block: 16px 110px; }
       case "delYes": doDelete(); break;
       case "histAll": openHistory(null); break;
       case "csv": exportCsv(); break;
+      case "mImport": openImport(); break;
+      case "impModel": downloadText("annubus-modele-import.csv", ["Nom;Catégorie;Téléphones;E-mails;Adresse;Code postal;Ville;Infos utiles", '"CMP Exemple";"Psychiatrie";"Secrétariat : 04 91 00 00 00";"secretariat@exemple.fr";"1 rue Exemple";"13001";"Marseille";"Horaires, conditions d\'accès…"'].join("\r\n")); break;
+      case "impGo": doImport(); break;
       case "mHist": openHistory(null); break;
       case "mAccess": openAccess(); break;
       case "logout": await sb.auth.signOut(); location.reload(); break;
@@ -1461,7 +1590,7 @@ main { padding-block: 16px 110px; }
         ? "<ol><li>Ouvrez ce lien dans <b>Safari</b> (pas dans Gmail ni Chrome) :<br><b>" + esc(APP_URL) + "</b></li><li>Touchez le bouton <b>Partager</b> (le carré avec une flèche vers le haut), en bas de l'écran.</li><li>Faites défiler et touchez <b>« Sur l'écran d'accueil »</b>, puis <b>Ajouter</b>.</li><li>Fermez Safari et ouvrez <b>Annubus</b> depuis la nouvelle icône.</li></ol>"
         : installEvt
           ? '<p>Touchez ce bouton, puis confirmez <b>Installer</b> :</p><button class="btn primary installbtn" type="button" data-install="1"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3v12M7 10l5 5 5-5M5 21h14\"/></svg> Installer Annubus</button><p>L\'icône Annubus apparaît ensuite sur l\'écran d\'accueil.</p>'
-          : "<ol><li>Ouvrez ce lien dans <b>Chrome</b> :<br><b>" + esc(APP_URL) + "</b></li><li>Touchez le menu <span class=\"kbd\">⋮</span> en haut à droite.</li><li>Touchez <b>« Ajouter à l'écran d'accueil »</b> (ou « Installer l'application »), puis confirmez.</li><li>Ouvrez <b>Annubus</b> depuis la nouvelle icône.</li></ol>") }),
+          : "<ol><li>Ouvrez ce lien dans <b>Chrome</b> :<br><b>" + esc(APP_URL) + "</b></li><li>Touchez le menu <span class=\"kbd\">⋮</span> en haut à droite.</li><li>Touchez <b>« Ajouter à l'écran d'accueil »</b> (ou « Installer l'application »), puis confirmez.</li><li>Ouvrez <b>Annubus</b> depuis la nouvelle icône.</li></ol><p class=\"tip\">Avec Firefox : menu <span class=\"kbd\">⋮</span> › « Ajouter à l'écran d'accueil ».</p>") }),
     () => ({ title: "3. Vous connecter", html:
       "<ol><li>Dans l'application, tapez votre adresse e-mail et touchez <b>Recevoir le lien</b>.</li><li>Ouvrez le mail reçu (regardez aussi dans les spams).</li>" +
       (tutoOS === "ios"
@@ -1524,9 +1653,9 @@ main { padding-block: 16px 110px; }
         '<p class="hint">Ensuite, envoyez-lui le lien de l\'application : ' + esc(APP_URL) + ' <button type="button" class="cp" data-copy="' + esc(APP_URL) + '" aria-label="Copier le lien" title="Copier le lien">' + IC.copy + "</button><br>Le guide (bouton ?) s'ouvrira tout seul à sa première visite.</p>" +
       "</form>" +
       '<details class="acc-add acc-bulk"><summary><b>Autoriser une liste d\'adresses d\'un coup</b></summary>' +
-        '<p class="hint">Collez les adresses, une par ligne (ou séparées par des virgules). Vous pouvez mettre le prénom devant : « Sarah ; sarah@exemple.fr ». Les adresses déjà autorisées sont ignorées.</p>' +
+        '<p class="hint">Collez les adresses, une par ligne (ou séparées par des virgules), ou chargez un fichier CSV (une colonne d\'e-mails, avec ou sans prénom). Vous pouvez mettre le prénom devant : « Sarah ; sarah@exemple.fr ». Les adresses déjà autorisées sont ignorées.</p>' +
         '<textarea id="accBulk" rows="6" placeholder="sarah@exemple.fr&#10;Karim ; karim@exemple.fr&#10;lea@exemple.fr" aria-label="Liste d\'adresses"></textarea>' +
-        '<div><button class="btn primary" type="button" id="accBulkAdd">Autoriser toute la liste</button></div>' +
+        '<div class="share-acts"><label class="btn" style="cursor:pointer">Charger un fichier CSV<input type="file" id="accFile" accept=".csv,.txt,text/csv" hidden></label><button class="btn primary" type="button" id="accBulkAdd">Autoriser toute la liste</button></div>' +
       "</details>" +
       '<div class="field"><label>' + list.length + " personne" + (list.length > 1 ? "s" : "") + " autorisée" + (list.length > 1 ? "s" : "") + " · " + nbAdmins + " administrateur" + (nbAdmins > 1 ? "s" : "") + "</label></div>" +
       '<div class="acc-list">' + list.map((m) => {
