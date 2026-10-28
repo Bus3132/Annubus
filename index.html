@@ -661,6 +661,7 @@ html, body { overflow-x: hidden; }
     contacts.forEach((c) => { const k = c.categorie || "Autres"; counts[k] = (counts[k] || 0) + 1; });
     if (![HOME, ALL, FAV].includes(cat) && !counts[cat] && loaded) cat = HOME;
     const isHome = cat === HOME && !q.trim();
+    if (loaded && $("#sheet").hidden && $("#tuto").hidden) { if (!isHome && navState() === "") navPush("list"); else if (isHome && navState() === "list") navPop("list"); }
     const favN = contacts.filter((c) => favs.has(c.id)).length;
     const chips = [HOME, ALL].concat(favN ? [FAV] : [], Object.keys(counts).sort((a, b) => a.localeCompare(b, "fr")));
     $("#cats").hidden = isHome;
@@ -754,11 +755,30 @@ html, body { overflow-x: hidden; }
   document.addEventListener("click", (e) => { const a = e.target.closest('a[href^="tel:"]'); if (a) noteCall(a); }, true);
 
   // ---------- feuilles (édition, historique, réglages) ----------
+  // ---------- bouton « retour » du téléphone : ferme la fenêtre ouverte, puis revient à l'accueil ----------
+  let skipPop = 0;
+  const navState = () => (window.history.state && window.history.state.annubus) || "";
+  function navPush(kind) { if (navState() !== kind) window.history.pushState({ annubus: kind }, ""); }
+  function navPop(kind) { if (navState() === kind) { skipPop++; window.history.back(); } }
+  function goHome() { q = ""; $("#q").value = ""; $("#clearQ").hidden = true; cat = HOME; render(); window.scrollTo(0, 0); }
+  window.addEventListener("popstate", () => {
+    if (skipPop) { skipPop--; return; }
+    if (!$("#tuto").hidden) { closeTutoCore(); return; }
+    if (!$("#sheet").hidden) { closeSheetCore(); return; }
+    if (cat !== HOME || q.trim()) goHome();
+  });
+
   function openSheet(mode, title) {
+    navPush("sheet");
     $("#sheet").hidden = false; $("#sheet").dataset.mode = mode; $("#sheetTitle").textContent = title;
     document.body.style.overflow = "hidden";
   }
   function closeSheet() {
+    closeSheetCore();
+    // une autre fenêtre peut s'ouvrir juste après (ex. comparer) : on ne recule que si rien n'est rouvert
+    setTimeout(() => { if ($("#sheet").hidden) navPop("sheet"); }, 60);
+  }
+  function closeSheetCore() {
     if (editor && editor.timer) clearInterval(editor.timer);
     if (editor && editor.id && sb) sb.from("verrous").delete().eq("contact_id", editor.id).eq("par", uid).then(() => {}, () => {});
     editor = null; $("#sheet").hidden = true; $("#sheet").dataset.mode = ""; document.body.style.overflow = "";
@@ -1610,8 +1630,9 @@ html, body { overflow-x: hidden; }
       (tutoStep < TUTO.length - 1 ? '<button class="btn primary" type="button" id="tutoNext">Suivant</button>' : '<button class="btn primary" type="button" id="tutoDone">C\'est compris</button>');
     $("#tutoBody").scrollTop = 0;
   }
-  function openTuto(step) { tutoStep = step || 0; renderTuto(); $("#tuto").hidden = false; document.body.style.overflow = "hidden"; }
-  function closeTuto() {
+  function openTuto(step) { navPush("tuto"); tutoStep = step || 0; renderTuto(); $("#tuto").hidden = false; document.body.style.overflow = "hidden"; }
+  function closeTuto() { closeTutoCore(); setTimeout(() => { if ($("#tuto").hidden) navPop("tuto"); }, 60); }
+  function closeTutoCore() {
     $("#tuto").hidden = true; document.body.style.overflow = "";
     try { localStorage.setItem("annubus-tuto-vu", "1"); } catch (e) {}
   }
