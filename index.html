@@ -356,7 +356,9 @@ main { padding-block: 16px 110px; }
 .auth-card { border: 2px solid var(--line); border-radius: 6px; box-shadow: 6px 6px 0 var(--blue); }
 
 /* ---------- accueil : récents, favoris, catégories ---------- */
-.home { display: grid; gap: 26px; }
+.home { display: grid; gap: 26px; grid-template-columns: minmax(0, 1fr); }
+.home > section { min-width: 0; }
+html, body { overflow-x: hidden; }
 .sec-title { margin: 0 0 12px; font-family: var(--font-display); font-weight: 400; font-size: 24px; line-height: 1; text-transform: uppercase; letter-spacing: .03em; display: flex; align-items: baseline; gap: 10px; }
 .sec-title small { font-family: var(--font-body); font-size: 13px; letter-spacing: .08em; color: var(--muted); }
 .sec-title .bar { flex: 1; height: 2px; background: var(--line); align-self: center; }
@@ -632,7 +634,8 @@ main { padding-block: 16px 110px; }
         ? '<div class="recents">' + rec.map((r) => {
             const c = r.id ? byId.get(r.id) : null;
             const name = c ? c.nom : r.num;
-            const line = [r.label, r.shown || r.num].filter(Boolean).join(" · ");
+            const sh = r.shown || r.num;
+            const line = [r.label, /^0\d{9}$/.test(sh) ? sh.replace(/(\d{2})(?=\d)/g, "$1 ") : sh].filter(Boolean).join(" · ");
             return '<a class="rc" href="tel:' + esc(r.num) + '" data-cid="' + esc(r.id || "") + '" data-label="' + esc(r.label || "") + '" aria-label="Rappeler ' + esc(name) + '"><span class="ci">' + PHONE_IC + '</span><span class="nm">' + esc(name) + '</span><span class="nb">' + esc(line) + "</span></a>";
           }).join("") + "</div>"
         : '<div class="hint-box">Les numéros que vous appelez depuis Annubus apparaîtront ici, pour les rappeler d\'un geste.</div>') +
